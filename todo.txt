@@ -1,8 +1,6 @@
-- add map option for target number of metal spots
-- add map option for target number of geothermals
-- add map option for entry/exit ramps
+- switch from setting water level to setting a relative water level, so it's easy to set if the craters are ponds, if there's no water, or if the whole map is water
+- improve entry/exit ramps?
 - place features on top of metal spots and/or ground decals
 - place features and/or ground decals on top of geothermals
 - give map a texture (sand?)
 - provide start locations (is this possible?)
-- prevent metal and geothermals in meteors that are overlapped

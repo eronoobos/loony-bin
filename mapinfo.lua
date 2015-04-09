@@ -20,7 +20,7 @@ local mapinfo = {
 
 	maphardness     = 100,
 	notDeformable   = false,
-	gravity         = 130,
+	gravity         = 75,
 	tidalStrength   = 0,
 	maxMetal        = 0.64,
 	extractorRadius = 100.0,
@@ -205,9 +205,8 @@ local mapinfo = {
 	},
 
 	teams = {
-		[0] = {startPos = {x = 1537, z = 754}},
-		[1] = {startPos = {x = 3478, z = 2215}},
-		[2] = {startPos = {x = 1179, z = 3168}},
+		[0] = {startPos = {x = 1, z = 1}},
+		[1] = {startPos = {x = 8191, z = 6143}},
 	},
 
 	terrainTypes = {

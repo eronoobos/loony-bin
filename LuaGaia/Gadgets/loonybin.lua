@@ -31,13 +31,19 @@ if (gadgetHandler:IsSyncedCode()) then
 local Loony = include "LoonyModule/loony.lua"
 local myWorld
 local heightRenderComplete, metalRenderComplete
+local baselevel = 300
 
 function gadget:Initialize()
 	local number = 10
-	local baselevel = 200
-	local minDiameter, maxDiameter = 1, 400
-	local options = spGetMapOptions()
+	local minDiameter, maxDiameter = 5, 800
+	local metersPerElmo = 5
+	local gravity = (Game.gravity / 130) * 9.8
+	local density = (Game.mapHardness / 100) * 2500
 	local mirror = "rotational"
+	local metalTarget = 20
+	local geothermalTarget = 4
+	local showerRamps = false
+	local options = spGetMapOptions()
 	if options ~= nil then
 		if options.number ~= nil then
 			number = tonumber(options.number)
@@ -46,16 +52,24 @@ function gadget:Initialize()
 			baselevel = 0 - tonumber(options.waterlevel)
 		end
 		if options.size == "large" then
-			minDiameter, maxDiameter = 50, 1000
+			minDiameter, maxDiameter = 50, 1200
 		elseif options.size == "medium" then
-			minDiameter, maxDiameter = 5, 500
+			minDiameter, maxDiameter = 5, 800
 		elseif options.size == "small" then
 			minDiameter, maxDiameter = 1, 100
 		end
 		mirror = options.mirror or "rotational"
+		if options.metals ~= nil then
+			metalTarget = tonumber(options.metals)
+		end
+		if options.geothermals ~= nil then
+			geothermalTarget = tonumber(options.geothermals)
+		end
+		if options.ramps ~= nil then
+			showerRamps = tonumber(options.ramps) == 1
+		end
 	end
-	myWorld = Loony.World(Game.mapX, Game.mapY, 4, baselevel)
-	myWorld.mirror = mirror
+	myWorld = Loony.World(Game.mapX, Game.mapY, metersPerElmo, gravity, density, mirror, metalTarget, geothermalTarget, showerRamps)
 	myWorld:MeteorShower(number, minDiameter, maxDiameter)
 	myWorld:RenderHeight()
 	myWorld:RenderMetal()
@@ -84,7 +98,6 @@ function Loony.CompleteRenderer(renderer)
 	local mapRuler = renderer.mapRuler
 	if renderer.renderType == "Height" then
 		-- write height map array to spring map when finished rendering
-		local baselevel = renderer.world.baselevel
 		spSetHeightMapFunc(function()
 			for x, yy in pairs(renderer.data) do
 				for y, height in pairs(yy) do
