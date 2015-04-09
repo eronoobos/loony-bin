@@ -20,6 +20,7 @@ local spLevelHeightMap		= Spring.LevelHeightMap
 local spSetMetalAmount = Spring.SetMetalAmount
 local spCreateFeature = Spring.CreateFeature
 local spGetGroundHeight = Spring.GetGroundHeight
+local spGetMapOptions = Spring.GetMapOptions
 
 
 
@@ -32,9 +33,30 @@ local myWorld
 local heightRenderComplete, metalRenderComplete
 
 function gadget:Initialize()
-	myWorld = Loony.World(Game.mapX, Game.mapY, 5, 100)
-	myWorld.mirror = "rotational"
-	myWorld:MeteorShower(10)
+	local number = 10
+	local baselevel = 200
+	local minDiameter, maxDiameter = 1, 400
+	local options = spGetMapOptions()
+	local mirror = "rotational"
+	if options ~= nil then
+		if options.number ~= nil then
+			number = tonumber(options.number)
+		end
+		if options.waterlevel ~= nil then
+			baselevel = 0 - tonumber(options.waterlevel)
+		end
+		if options.size == "large" then
+			minDiameter, maxDiameter = 50, 1000
+		elseif options.size == "medium" then
+			minDiameter, maxDiameter = 5, 500
+		elseif options.size == "small" then
+			minDiameter, maxDiameter = 1, 100
+		end
+		mirror = options.mirror or "rotational"
+	end
+	myWorld = Loony.World(Game.mapX, Game.mapY, 4, baselevel)
+	myWorld.mirror = mirror
+	myWorld:MeteorShower(number, minDiameter, maxDiameter)
 	myWorld:RenderHeight()
 	myWorld:RenderMetal()
 	-- i have to change the height map here and not through GameFrame so that it happens before pathfinding & team LOS initialization

@@ -28,6 +28,13 @@
 local options = {
 --// Sections
 	{
+		key  = 'Craters',
+		name = 'Crater Settings',
+		desc = 'Control the number, size, and mirroring of craters.',
+		type = 'section',
+	},
+
+	{
 		key  = 'Atmosphere',
 		name = 'Atmosphere Settings',
 		desc = 'Weather and time',
@@ -42,6 +49,57 @@ local options = {
 	},
 
 --// Options
+	--// Craters
+	{
+		key  = "number",
+		name = "Number",
+		desc = "Number of craters",
+		type = "number",
+		def  = "10",
+		section = 'Craters',
+		min = 5,
+		max = 50,
+		step = 5,
+	},
+	{
+		key  = "size",
+		name = "Size",
+		desc = "Size of craters",
+		type = "list",
+		def  = "medium",
+		section = 'Craters',
+		items = {
+			{ key = "small",  name = "Small",  desc = "Small" },
+			{ key = "medium",   name = "Medium",   desc = "Medium" },
+			{ key = "large", name = "Large", desc = "Large" }
+		},
+	},
+	{
+		key  = "mirror",
+		name = "Symmetry",
+		desc = "type of map symmetry",
+		type = "list",
+		def  = "rotational",
+		section = 'Craters',
+		items = {
+			{ key = "rotational",  name = "Rotational",  desc = "rotational symmetry" },
+			{ key = "reflectionalx",   name = "Reflectional X-Axis",   desc = "east and west are mirror images" },
+			{ key = "reflectionalz", name = "Reflectional Z-Axis", desc = "north and south are mirror images" },
+			{ key = "none", name = "None", desc = "no symmetry" },
+		},
+	},
+	{
+		key  = "waterlevel",
+		name = "Water Level",
+		desc = "water level. 100 means whole map is underwater, -1000 means there will be no water",
+		type = "number",
+		def  = -200,
+		section = 'Craters',
+		min = -1000,
+		max = 200,
+		step = 100,
+	},
+
 	--// Atmosphere
 	{
 		key  = "timeofday",
