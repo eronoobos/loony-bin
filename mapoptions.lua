@@ -99,13 +99,16 @@ local options = {
 	{
 		key  = "waterlevel",
 		name = "Water Level",
-		desc = "water level. 100 means whole map is underwater, -1000 means there will be no water",
-		type = "number",
-		def  = -300,
+		desc = "water level: dry, shallow pools, lakes, or ocean",
+		type = "list",
+		def  = "dry",
 		section = 'Craters',
-		min = -1000,
-		max = 200,
-		step = 100,
+		items = {
+			{ key = "dry",  name = "Dry",  desc = "no water" },
+			{ key = "pools",  name = "Crater Pools",  desc = "shallow pools in deeper craters" },
+			{ key = "lakes",   name = "Crater Lakes",   desc = "every crater is a lake" },
+			{ key = "ocean", name = "Ocean", desc = "only crater rims are above water" },
+		},
 	},
 
 	--// Atmosphere

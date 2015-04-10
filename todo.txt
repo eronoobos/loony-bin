@@ -1,6 +1,5 @@
-- switch from setting water level to setting a relative water level, so it's easy to set if the craters are ponds, if there's no water, or if the whole map is water
-- improve entry/exit ramps?
+- make a less muddy map texture
 - place features on top of metal spots and/or ground decals
 - place features and/or ground decals on top of geothermals
-- give map a texture (sand?)
+- add decals or slight height addition for blast rays
 - provide start locations (is this possible?)

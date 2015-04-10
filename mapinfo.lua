@@ -97,7 +97,7 @@ local mapinfo = {
 	resources = {
 		--grassBladeTex = "",
 		--grassShadingTex = "",
-		detailTex = "detailtexbright.bmp",
+		detailTex = "detailtex_basalt.png",
 		-- specularTex = "spec.tga",
 		-- splatDetailTex = "splattex.tga",
 		-- splatDistrTex = "splatdist.tga",
@@ -141,13 +141,13 @@ local mapinfo = {
 		--// dynsun
 		sunStartAngle = 0.0,
 		sunOrbitTime  = 1440.0,
-		sunDir        = {-1.5, 1.0, -1.5, 1e9},
+		sunDir        = {1.0, 0.4, 0.0, 1e9},
 
 		--// unit & ground lighting
 		groundAmbientColor  = {0.5, 0.5, 0.5},
 		groundDiffuseColor  = {1.0, 1.0, 1.0},
 		groundSpecularColor = {0.5, 0.5, 0.5},
-		groundShadowDensity = 0.5,
+		groundShadowDensity = 1.0,
 		unitAmbientColor    = {0.5, 0.5, 0.5},
 		unitDiffuseColor    = {1.0, 1.0, 1.0},
 		unitSpecularColor   = {0.5, 0.5, 0.5},

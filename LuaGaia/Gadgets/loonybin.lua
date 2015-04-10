@@ -31,12 +31,12 @@ if (gadgetHandler:IsSyncedCode()) then
 local Loony = include "LoonyModule/loony.lua"
 local myWorld
 local heightRenderComplete, metalRenderComplete
-local baselevel = 300
+local waterlevel = "dry"
 
 function gadget:Initialize()
 	local number = 10
-	local minDiameter, maxDiameter = 5, 800
-	local metersPerElmo = 5
+	local minDiameter, maxDiameter = 15, 1500
+	local metersPerElmo = 8
 	local gravity = (Game.gravity / 130) * 9.8
 	local density = (Game.mapHardness / 100) * 2500
 	local mirror = "rotational"
@@ -49,12 +49,12 @@ function gadget:Initialize()
 			number = tonumber(options.number)
 		end
 		if options.waterlevel ~= nil then
-			baselevel = 0 - tonumber(options.waterlevel)
+			waterlevel = options.waterlevel
 		end
 		if options.size == "large" then
 			minDiameter, maxDiameter = 50, 1200
 		elseif options.size == "medium" then
-			minDiameter, maxDiameter = 5, 800
+			minDiameter, maxDiameter = 15, 1200
 		elseif options.size == "small" then
 			minDiameter, maxDiameter = 1, 100
 		end
@@ -97,7 +97,18 @@ end
 function Loony.CompleteRenderer(renderer)
 	local mapRuler = renderer.mapRuler
 	if renderer.renderType == "Height" then
-		-- write height map array to spring map when finished rendering
+		-- determine base level
+		local baselevel = 200 - renderer.heightBuf.minHeight
+		if waterlevel == "dry" then
+			baselevel = 200 - renderer.heightBuf.minHeight
+		elseif waterlevel == "pools" then
+			baselevel = (0-renderer.heightBuf.minHeight) * 0.5
+		elseif waterlevel == "lakes" then
+			baselevel = renderer.heightBuf.maxHeight * 0.25
+		elseif waterlevel == "ocean" then
+			baselevel = 0 - (renderer.heightBuf.maxHeight * 0.25)
+		end
+		-- write height map array to spring map
 		spSetHeightMapFunc(function()
 			for x, yy in pairs(renderer.data) do
 				for y, height in pairs(yy) do
