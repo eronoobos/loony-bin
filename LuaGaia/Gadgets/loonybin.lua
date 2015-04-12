@@ -12,6 +12,7 @@ function gadget:GetInfo()
 end
 
 -- function localization
+
 local spEcho = Spring.Echo
 local spSetHeightMapFunc	= Spring.SetHeightMapFunc
 local spSetHeightMap		= Spring.SetHeightMap
@@ -22,6 +23,24 @@ local spCreateFeature = Spring.CreateFeature
 local spGetGroundHeight = Spring.GetGroundHeight
 local spGetMapOptions = Spring.GetMapOptions
 
+local twicePi = math.pi * 2
+local mRandom = math.random
+local mCos = math.cos
+local mSin = math.sin
+local tInsert = table.insert
+
+-- local functions
+
+local function tGetRandom(fromTable)
+  return fromTable[mRandom(1, #fromTable)]
+end
+
+local function CirclePos(cx, cy, dist, angle)
+  angle = angle or mRandom() * twicePi
+  local x = cx + dist * mCos(angle)
+  local y = cy + dist * mSin(angle)
+  return x, y
+end
 
 
 ----- SPRING SYNCED ------------------------------------------
@@ -31,9 +50,20 @@ if (gadgetHandler:IsSyncedCode()) then
 local Loony = include "LoonyModule/loony.lua"
 local myWorld
 local heightRenderComplete, metalRenderComplete
+local metalSpots = {}
+local metalSpotFeatureNames = {
+	"GreyRock6",
+	"brock_2",
+	"brock_1",
+	"agorm_rock4",
+	"agorm_rock5",
+	"pdrock4",
+}
+local metalSpotFeatureRadius = 55 -- how far away from metal spot to place features
 local waterlevel = "dry"
 
 function gadget:Initialize()
+	-- default config values
 	local number = 10
 	local minDiameter, maxDiameter = 15, 1500
 	local metersPerElmo = 8
@@ -43,6 +73,7 @@ function gadget:Initialize()
 	local metalTarget = 20
 	local geothermalTarget = 4
 	local showerRamps = false
+	-- get map options
 	local options = spGetMapOptions()
 	if options ~= nil then
 		if options.number ~= nil then
@@ -69,6 +100,7 @@ function gadget:Initialize()
 			showerRamps = tonumber(options.ramps) == 1
 		end
 	end
+	-- render crater map through Loony
 	myWorld = Loony.World(Game.mapX, Game.mapY, metersPerElmo, gravity, density, mirror, metalTarget, geothermalTarget, showerRamps)
 	myWorld:MeteorShower(number, minDiameter, maxDiameter)
 	myWorld:RenderHeight()
@@ -78,7 +110,19 @@ function gadget:Initialize()
 	while not heightRenderComplete or not metalRenderComplete do
 		myWorld:RendererFrame(i)
 	end
-	local featureslist = myWorld:GetFeaturelist()
+	local featureslist = myWorld:GetFeaturelist() -- get geovents from Loony
+	-- add metal spot features
+	local ni = 1
+	for i, spot in pairs(metalSpots) do
+		for j = 1, mRandom(3, 4) do
+			local x, z = CirclePos( spot.x, spot.z, metalSpotFeatureRadius * (1+(mRandom()*0.1)) )
+			local fDef = { x = x, z = z, name = metalSpotFeatureNames[ni], rot = mRandom(1, 359) }
+			tInsert(featureslist, fDef)
+			ni = ni + 1
+			if ni > #metalSpotFeatureNames then ni = 1 end
+		end
+	end
+	-- create features on map
 	for i,fDef in pairs(featureslist) do
 		local stop = false
 		if fDef.name == "GeoVent" then
@@ -87,7 +131,7 @@ function gadget:Initialize()
 			if y < 0 then stop = true end
 		end
 		if not stop then
-			local flagID = spCreateFeature(fDef.name, fDef.x, spGetGroundHeight(fDef.x,fDef.z)+5, fDef.z, fDef.rot)
+			local flagID = spCreateFeature(fDef.name, fDef.x, spGetGroundHeight(fDef.x,fDef.z)+5, fDef.z, tostring(fDef.rot))
 		end
 	end
 end
@@ -108,7 +152,7 @@ function Loony.CompleteRenderer(renderer)
 		elseif waterlevel == "ocean" then
 			baselevel = 0 - (renderer.heightBuf.maxHeight * 0.25)
 		end
-		-- write height map array to spring map
+		-- write height map array to spring
 		spSetHeightMapFunc(function()
 			for x, yy in pairs(renderer.data) do
 				for y, height in pairs(yy) do
@@ -119,11 +163,13 @@ function Loony.CompleteRenderer(renderer)
 		end)
 		heightRenderComplete = true
 	elseif renderer.renderType == "Metal" then
+		-- write metal map array to spring
 		for x, yy in pairs(renderer.data) do
 			for y, mAmount in pairs(yy) do
 				spSetMetalAmount(x, y, mAmount)
 			end
 		end
+		metalSpots = renderer.metalSpots
 		metalRenderComplete = true
 	end
 end

@@ -12,7 +12,7 @@ local mapinfo = {
 	--mutator   = "deployment";
 	--mapfile   = "", --// location of smf/sm3 file (optional)
 	modtype     = 3, --// 1=primary, 0=hidden, 3=map
-	depend      = {"Map Helper v1"},
+	depend      = {"Map Helper v1",  "Spring Features 1.0"},
 	replace     = {},
 
 	--startpic   = "", --// deprecated
@@ -97,7 +97,7 @@ local mapinfo = {
 	resources = {
 		--grassBladeTex = "",
 		--grassShadingTex = "",
-		detailTex = "detailtex_basalt.png",
+		detailTex = "detailtexbright.bmp",
 		-- specularTex = "spec.tga",
 		-- splatDetailTex = "splattex.tga",
 		-- splatDistrTex = "splatdist.tga",
