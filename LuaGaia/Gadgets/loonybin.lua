@@ -48,18 +48,22 @@ if (gadgetHandler:IsSyncedCode()) then
 -------------------------------------------------------
 
 local Loony = include "LoonyModule/loony.lua"
+local sentDecals = false
 local myWorld
 local heightRenderComplete, metalRenderComplete
 local metalSpots = {}
 local metalSpotFeatureNames = {
-	"GreyRock6",
-	"brock_2",
-	"brock_1",
-	"agorm_rock4",
-	"agorm_rock5",
-	"pdrock4",
+	-- "GreyRock6",
+	-- "brock_2",
+	-- "brock_1",
+	-- "agorm_rock4",
+	-- "agorm_rock5",
+	-- "pdrock4",
+	"crystalmex",
 }
-local metalSpotFeatureRadius = 55 -- how far away from metal spot to place features
+local metalSpotFeatureRadius = 0 -- 55 -- how far away from metal spot to place features
+local metalSpotFeatureNumberMin = 1 -- 3 -- how many features per spot minimum
+local metalSpotFeatureNumberMax = 1 -- 5 -- how many features per spot maximum
 local waterlevel = "dry"
 
 function gadget:Initialize()
@@ -112,9 +116,10 @@ function gadget:Initialize()
 	end
 	local featureslist = myWorld:GetFeaturelist() -- get geovents from Loony
 	-- add metal spot features
+	--[[
 	local ni = 1
 	for i, spot in pairs(metalSpots) do
-		for j = 1, mRandom(3, 4) do
+		for j = 1, mRandom(metalSpotFeatureNumberMin, metalSpotFeatureNumberMax) do
 			local x, z = CirclePos( spot.x, spot.z, metalSpotFeatureRadius * (1+(mRandom()*0.1)) )
 			local fDef = { x = x, z = z, name = metalSpotFeatureNames[ni], rot = mRandom(1, 359) }
 			tInsert(featureslist, fDef)
@@ -122,6 +127,7 @@ function gadget:Initialize()
 			if ni > #metalSpotFeatureNames then ni = 1 end
 		end
 	end
+	]]--
 	-- create features on map
 	for i,fDef in pairs(featureslist) do
 		local stop = false
@@ -131,9 +137,18 @@ function gadget:Initialize()
 			if y < 0 then stop = true end
 		end
 		if not stop then
-			local flagID = spCreateFeature(fDef.name, fDef.x, spGetGroundHeight(fDef.x,fDef.z)+5, fDef.z, tostring(fDef.rot))
+			local flagID = spCreateFeature(fDef.name, fDef.x, spGetGroundHeight(fDef.x,fDef.z)+5, fDef.z, fDef.rot)
 		end
 	end
+end
+
+function gadget:RecvLuaMsg(msg, playerID)
+	if sentDecals then return end
+	if msg ~= "Ground Decal Widget Loaded" then return end
+	-- for i, spot in pairs(metalSpots) do
+	-- 	SendToUnsynced('GroundDecal', "maps/mex.png", spot.x, spot.z, myWorld.metalSpotRadius*2)
+	-- end
+	sentDecals = true
 end
 
 -- Loony callins
@@ -175,4 +190,16 @@ function Loony.CompleteRenderer(renderer)
 end
 
 --------------------------------------------------------
+else
+----- SPRING UNSYNCED ------------------------------------------
+
+local function GroundDecalToLuaUI(_, filename, x, z, width, height, rotation, blendMode)
+  Script.LuaUI.ReceiveGroundDecal(filename, x, z, width, height, rotation, blendMode)
 end
+
+function gadget:Initialize()
+	gadgetHandler:AddSyncAction('GroundDecal', GroundDecalToLuaUI)
+end
+
+end
+--------------------------------------------------------
