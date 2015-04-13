@@ -52,18 +52,6 @@ local sentDecals = false
 local myWorld
 local heightRenderComplete, metalRenderComplete
 local metalSpots = {}
-local metalSpotFeatureNames = {
-	-- "GreyRock6",
-	-- "brock_2",
-	-- "brock_1",
-	-- "agorm_rock4",
-	-- "agorm_rock5",
-	-- "pdrock4",
-	"crystalmex",
-}
-local metalSpotFeatureRadius = 0 -- 55 -- how far away from metal spot to place features
-local metalSpotFeatureNumberMin = 1 -- 3 -- how many features per spot minimum
-local metalSpotFeatureNumberMax = 1 -- 5 -- how many features per spot maximum
 local waterlevel = "dry"
 
 function gadget:Initialize()
@@ -115,19 +103,6 @@ function gadget:Initialize()
 		myWorld:RendererFrame(i)
 	end
 	local featureslist = myWorld:GetFeaturelist() -- get geovents from Loony
-	-- add metal spot features
-	--[[
-	local ni = 1
-	for i, spot in pairs(metalSpots) do
-		for j = 1, mRandom(metalSpotFeatureNumberMin, metalSpotFeatureNumberMax) do
-			local x, z = CirclePos( spot.x, spot.z, metalSpotFeatureRadius * (1+(mRandom()*0.1)) )
-			local fDef = { x = x, z = z, name = metalSpotFeatureNames[ni], rot = mRandom(1, 359) }
-			tInsert(featureslist, fDef)
-			ni = ni + 1
-			if ni > #metalSpotFeatureNames then ni = 1 end
-		end
-	end
-	]]--
 	-- create features on map
 	for i,fDef in pairs(featureslist) do
 		local stop = false
@@ -143,11 +118,19 @@ function gadget:Initialize()
 end
 
 function gadget:RecvLuaMsg(msg, playerID)
-	if sentDecals then return end
+	-- if sentDecals then return end
 	if msg ~= "Ground Decal Widget Loaded" then return end
 	-- for i, spot in pairs(metalSpots) do
 	-- 	SendToUnsynced('GroundDecal', "maps/mex.png", spot.x, spot.z, myWorld.metalSpotRadius*2)
 	-- end
+	for i, m in pairs(myWorld.meteors) do
+		if m.impact.blastNoise then
+			local width = m.impact.craterRadius * 2 * (2715/488)
+			local g = mRandom() * 0.33
+			local r = mRandom() * (0.33 - g)
+			SendToUnsynced('GroundDecal', 'maps/blastrays.png', m.sx, m.sz, width, nil, nil, r, g, 1, 0.2, "alpha_add")
+		end
+	end
 	sentDecals = true
 end
 
@@ -193,8 +176,8 @@ end
 else
 ----- SPRING UNSYNCED ------------------------------------------
 
-local function GroundDecalToLuaUI(_, filename, x, z, width, height, rotation, blendMode)
-  Script.LuaUI.ReceiveGroundDecal(filename, x, z, width, height, rotation, blendMode)
+local function GroundDecalToLuaUI(_, filename, x, z, width, height, rotation, r, g, b, a, blendMode)
+  Script.LuaUI.ReceiveGroundDecal(filename, x, z, width, height, rotation, r, g, b, a, blendMode)
 end
 
 function gadget:Initialize()

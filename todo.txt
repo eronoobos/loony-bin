@@ -1,9 +1,7 @@
-- either find a feature for metal spots that goes around the spot, or place (smaller) rocks in a circle around the metal spot
 - create or find better detailtex
 - place ground decals on top of geothermals?
 - map option for random key
 - fix random variation of mirrored meteors (should not be multiplicative)
-- add ground decals or slight height addition for blast rays
-- add more rocks (greyrock?)
+- idea for metal spots: bring back non-reclaimable features, but make them disappear if a building is on top of them, and reappear when it's gone
 - sprinkle some randomly placed, reclaimable, easily distinguishable rocks around the map
 - provide start locations (is this possible?)
