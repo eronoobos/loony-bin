@@ -1,5 +1,5 @@
 - create or find better detailtex
-- place ground decals on top of geothermals?
+- use something other than a giant decal for blastrays (it's SLOWWW)
 - map option for random key
 - fix random variation of mirrored meteors (should not be multiplicative)
 - idea for metal spots: bring back non-reclaimable features, but make them disappear if a building is on top of them, and reappear when it's gone

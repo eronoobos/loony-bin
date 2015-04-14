@@ -27,6 +27,7 @@ local twicePi = math.pi * 2
 local mRandom = math.random
 local mCos = math.cos
 local mSin = math.sin
+local mSqrt = math.sqrt
 local tInsert = table.insert
 
 -- local functions
@@ -53,6 +54,15 @@ local myWorld
 local heightRenderComplete, metalRenderComplete
 local metalSpots = {}
 local waterlevel = "dry"
+
+local blastRayDecals = {
+	{image = 'maps/blastrays1.png', innerWidth = 37, width = 256 },
+	{image = 'maps/blastrays2.png', innerWidth = 20, width = 256 },
+	{image = 'maps/blastrays3.png', innerWidth = 27, width = 256 },
+}
+for i, d in pairs(blastRayDecals) do
+	blastRayDecals[i].widthRatio = d.width / d.innerWidth
+end
 
 function gadget:Initialize()
 	-- default config values
@@ -94,6 +104,7 @@ function gadget:Initialize()
 	end
 	-- render crater map through Loony
 	myWorld = Loony.World(Game.mapX, Game.mapY, metersPerElmo, gravity, density, mirror, metalTarget, geothermalTarget, showerRamps)
+	myWorld.blastRayCraterNumber = mRandom(1, #blastRayDecals)
 	myWorld:MeteorShower(number, minDiameter, maxDiameter)
 	myWorld:RenderHeight()
 	myWorld:RenderMetal()
@@ -123,12 +134,21 @@ function gadget:RecvLuaMsg(msg, playerID)
 	-- for i, spot in pairs(metalSpots) do
 	-- 	SendToUnsynced('GroundDecal', "maps/mex.png", spot.x, spot.z, myWorld.metalSpotRadius*2)
 	-- end
+	local bri = 1
 	for i, m in pairs(myWorld.meteors) do
 		if m.impact.blastNoise then
-			local width = m.impact.craterRadius * 2 * (2715/488)
+			local d = blastRayDecals[bri]
+			local filename = d.image
+			local width = m.impact.craterRadius * 2 * d.widthRatio
 			local g = mRandom() * 0.33
 			local r = mRandom() * (0.33 - g)
-			SendToUnsynced('GroundDecal', 'maps/blastrays.png', m.sx, m.sz, width, nil, nil, r, g, 1, 0.2, "alpha_add")
+			SendToUnsynced('GroundDecal', filename, m.sx, m.sz, width, nil, nil, r, g, 1, 0.2, "alpha_add")
+			bri = bri + 1
+			if bri > #blastRayDecals then bri = 1 end
+		end
+		local width = mSqrt(((myWorld.geothermalRadius * 2)^2) * 2)
+		if m.geothermal then
+			SendToUnsynced('GroundDecal', 'maps/geothermal.png', m.sx, m.sz, width, nil, nil, 0, 0, 0, 1)
 		end
 	end
 	sentDecals = true

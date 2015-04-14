@@ -69,11 +69,9 @@ local function DrawDecals()
 			gl.PushMatrix()
 			gl.Translate(0.5, 0.5, 0)
 			gl.Rotate( d.rotation, 0, 0, 1)
-			local x1, z1, x2, z2, rx1, rz1, rx2, rz2 = QuadCoordinates(d.x, d.z, d.hw, d.hh)
-			-- spEcho(x1, z2, x2, z2, rx1, rz1, rx2, rz2)
-			gl.DrawGroundQuad(x1, z1, x2, z2, false, rx1, rz1, rx2, rz2)
+			gl.DrawGroundQuad(d.x1, d.z1, d.x2, d.z2, false, d.rx1, d.rz1, d.rx2, d.rz2)
 			gl.PopMatrix()
-			if d.blendMode then gl.Blending(false) end
+			if d.blendMode then gl.Blending('alpha') end
 			if d.RGBA[1] then gl.Color(1, 1, 1, 1) end
 		end
     	gl.Texture(false)
@@ -89,7 +87,8 @@ local function ReceiveGroundDecal(filename, x, z, width, height, rotation, r, g,
 	height = height or width
 	rotation = rotation or mRandom(0, 360)
 	decals[filename] = decals[filename] or {}
-	local decal = {x = x, z = z, width = width, height = height, hw = width / 2, hh = height / 2, rotation = rotation, RGBA = {r,g,b,a}, blendMode = blendMode}
+	local x1, z1, x2, z2, rx1, rz1, rx2, rz2 = QuadCoordinates(x, z, width/2, height/2)
+	local decal = { x1=x1, z1=z1, x2=x2, z2=z2, rx1=rx1, rz1=rz1, rx2=rx2, rz2=rz2, rotation = rotation, RGBA = {r,g,b,a}, blendMode = blendMode }
 	tInsert(decals[filename], decal)
 	displayList = gl.CreateList(DrawDecals)
 	-- spEcho("got ground decal", filename, x, z, width, height)
