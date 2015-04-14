@@ -1,8 +1,5 @@
 - fix meteor shower min and max diameter
 - create or find better detailtex
-- use something other than a giant decal for blastrays (it's SLOWWW)
-- idea for metal spots: bring back non-reclaimable features, but make them disappear if a building is on top of them, and reappear when it's gone
 - sprinkle some randomly placed, reclaimable, easily distinguishable rocks around the map
 - find a way to get a new random seed every game?
-- provide start locations (is this possible?)
-	- or have fixed start locations that always have a crater with three metal spots on each
+- idea for metal spots: bring back non-reclaimable features, but make them disappear if a building is on top of them, and reappear when it's gone. might be a bad idea though, because players will expect the rocks to be reclaimable

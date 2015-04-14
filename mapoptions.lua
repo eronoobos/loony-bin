@@ -62,17 +62,6 @@ local options = {
 		step = 1,
 	},
 	{
-		key  = "number",
-		name = "Number",
-		desc = "Number of craters",
-		type = "number",
-		def  = 10,
-		section = 'Craters',
-		min = 5,
-		max = 50,
-		step = 5,
-	},
-	{
 		key  = "size",
 		name = "Size",
 		desc = "Size of craters",

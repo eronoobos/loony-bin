@@ -53,7 +53,6 @@ if (gadgetHandler:IsSyncedCode()) then
 -------------------------------------------------------
 
 local Loony = include "LoonyModule/loony.lua"
-local sentDecals = false
 local myWorld
 local heightRenderComplete, metalRenderComplete
 local metalSpots = {}
@@ -77,7 +76,6 @@ function gadget:Initialize()
 	spEcho("initializing loony bin gadget...")
 	-- default config values
 	local randomseed = 1
-	-- local number = 10
 	local minDiameter, maxDiameter = 5, 400
 	local metersPerElmo = 8
 	local gravity = (Game.gravity / 130) * 9.8
@@ -91,9 +89,6 @@ function gadget:Initialize()
 	if options ~= nil then
 		if options.randomseed ~= nil then
 			randomseed = tonumber(options.randomseed)
-		end
-		if options.number ~= nil then
-			-- number = tonumber(options.number)
 		end
 		if options.waterlevel ~= nil then
 			waterlevel = options.waterlevel
@@ -116,6 +111,16 @@ function gadget:Initialize()
 			showerRamps = tonumber(options.ramps) == 1
 		end
 	end
+	-- get team start locations
+	local starts = {}
+	if Game.startPosType ~= 2 then
+		for i, teamID in pairs(Spring.GetTeamList()) do
+			if teamID ~= Spring.GetGaiaTeamID() then
+				local x, y, z = Spring.GetTeamStartPosition(teamID)
+				tInsert(starts, {x=x, z=z})
+			end
+		end
+	end
 	-- create crater map
 	mRandomSeed(randomseed)
 	myWorld = Loony.World(Game.mapX, Game.mapY, metersPerElmo, gravity, density, mirror, metalTarget, geothermalTarget, showerRamps)
@@ -126,6 +131,13 @@ function gadget:Initialize()
 	while #spots < metalTarget and try < metalTarget do
 		myWorld:Clear()
 		myWorld:MeteorShower(number, minDiameter, maxDiameter)
+		for i, start in pairs(starts) do
+			-- sx, sz, diameterImpactor, velocityImpactKm, angleImpact, densityImpactor, age, metal, geothermal, seedSeed, ramps, mirrorMeteor, noMirror
+			local m = myWorld:AddMeteor(start.x, start.z, 120, nil, nil, nil, nil, 3, false, nil, nil, nil, true)
+			m.metalGeothermalRampSet = true
+		end
+		myWorld:SetMetalGeothermalRamp()
+		myWorld:ResetMeteorAges()
 		number = number + 1
 		try = try + 1
 		spots = myWorld:GetMetalSpots()
@@ -154,15 +166,25 @@ function gadget:Initialize()
 end
 
 function gadget:RecvLuaMsg(msg, playerID)
-	-- if sentDecals then return end
 	if msg ~= "Ground Decal Widget Loaded" then return end
-	-- for i, spot in pairs(metalSpots) do
-	-- 	SendToUnsynced('GroundDecal', "maps/mex.png", spot.x, spot.z, myWorld.metalSpotRadius*2)
-	-- end
-	local bri = 1
+	SendToUnsynced('ClearGroundDecals')
+	-- add metal spot decals
+	for i, spot in pairs(metalSpots) do
+		SendToUnsynced('GroundDecal', "maps/geothermal.png", spot.x, spot.z, myWorld.metalSpotRadius*8, nil, nil, 0.5, 0, 0, 0.25)
+	end
+	-- add geotermal decals
 	for i, m in pairs(myWorld.meteors) do
-		--[[
-		if m.impact.blastNoise then
+		local width = mSqrt(((myWorld.geothermalRadius * 2)^2) * 2) * 2
+		if m.geothermal then
+			SendToUnsynced('GroundDecal', 'maps/geothermal.png', m.sx, m.sz, width, nil, nil, 0, 0, 0, 1)
+		end
+	end
+	-- add blastray decals to at most three tiny craters
+	local n = 0
+	local bri = 1
+	for i = #myWorld.meteors, 1, -1 do
+		local m = myWorld.meteors[i]
+		if m.impact.craterRadius < 50 then
 			local d = blastRayDecals[bri]
 			local filename = d.image
 			local width = m.impact.craterRadius * 2 * d.widthRatio
@@ -171,14 +193,10 @@ function gadget:RecvLuaMsg(msg, playerID)
 			SendToUnsynced('GroundDecal', filename, m.sx, m.sz, width, nil, nil, r, g, 1, 0.2, "alpha_add")
 			bri = bri + 1
 			if bri > #blastRayDecals then bri = 1 end
-		end
-		]]--
-		local width = mSqrt(((myWorld.geothermalRadius * 2)^2) * 2) * 2
-		if m.geothermal then
-			SendToUnsynced('GroundDecal', 'maps/geothermal.png', m.sx, m.sz, width, nil, nil, 0, 0, 0, 1)
+			n = n + 1
+			if n == 3 then break end
 		end
 	end
-	sentDecals = true
 end
 
 -- Loony callins
@@ -227,8 +245,13 @@ local function GroundDecalToLuaUI(_, filename, x, z, width, height, rotation, r,
   Script.LuaUI.ReceiveGroundDecal(filename, x, z, width, height, rotation, r, g, b, a, blendMode)
 end
 
+local function ClearGroundDecalsToLuaUI(_)
+  Script.LuaUI.ClearGroundDecals()
+end
+
 function gadget:Initialize()
 	gadgetHandler:AddSyncAction('GroundDecal', GroundDecalToLuaUI)
+	gadgetHandler:AddSyncAction('ClearGroundDecals', ClearGroundDecalsToLuaUI)
 end
 
 end
