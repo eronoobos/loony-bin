@@ -25,9 +25,13 @@ local spGetMapOptions = Spring.GetMapOptions
 
 local twicePi = math.pi * 2
 local mRandom = math.random
+local mRandomSeed = math.randomseed
 local mCos = math.cos
 local mSin = math.sin
 local mSqrt = math.sqrt
+local mCeil = math.ceil
+local mFloor = math.floor
+
 local tInsert = table.insert
 
 -- local functions
@@ -54,6 +58,7 @@ local myWorld
 local heightRenderComplete, metalRenderComplete
 local metalSpots = {}
 local waterlevel = "dry"
+local thisGameID = 0
 
 local blastRayDecals = {
 	{image = 'maps/blastrays1.png', innerWidth = 37, width = 256 },
@@ -64,32 +69,41 @@ for i, d in pairs(blastRayDecals) do
 	blastRayDecals[i].widthRatio = d.width / d.innerWidth
 end
 
+function gadget:GameID(gameID)
+	thisGameID = gameID
+end
+
 function gadget:Initialize()
+	spEcho("initializing loony bin gadget...")
 	-- default config values
-	local number = 10
-	local minDiameter, maxDiameter = 15, 1500
+	local randomseed = 1
+	-- local number = 10
+	local minDiameter, maxDiameter = 5, 400
 	local metersPerElmo = 8
 	local gravity = (Game.gravity / 130) * 9.8
 	local density = (Game.mapHardness / 100) * 2500
 	local mirror = "rotational"
-	local metalTarget = 20
+	local metalTarget = 24
 	local geothermalTarget = 4
 	local showerRamps = false
 	-- get map options
 	local options = spGetMapOptions()
 	if options ~= nil then
+		if options.randomseed ~= nil then
+			randomseed = tonumber(options.randomseed)
+		end
 		if options.number ~= nil then
-			number = tonumber(options.number)
+			-- number = tonumber(options.number)
 		end
 		if options.waterlevel ~= nil then
 			waterlevel = options.waterlevel
 		end
 		if options.size == "large" then
-			minDiameter, maxDiameter = 50, 1200
+			minDiameter, maxDiameter = 25, 800
 		elseif options.size == "medium" then
-			minDiameter, maxDiameter = 15, 1200
+			minDiameter, maxDiameter = 5, 400
 		elseif options.size == "small" then
-			minDiameter, maxDiameter = 1, 100
+			minDiameter, maxDiameter = 1, 200
 		end
 		mirror = options.mirror or "rotational"
 		if options.metals ~= nil then
@@ -102,10 +116,21 @@ function gadget:Initialize()
 			showerRamps = tonumber(options.ramps) == 1
 		end
 	end
-	-- render crater map through Loony
+	-- create crater map
+	mRandomSeed(randomseed)
 	myWorld = Loony.World(Game.mapX, Game.mapY, metersPerElmo, gravity, density, mirror, metalTarget, geothermalTarget, showerRamps)
 	myWorld.blastRayCraterNumber = mRandom(1, #blastRayDecals)
-	myWorld:MeteorShower(number, minDiameter, maxDiameter)
+	local number = mCeil(metalTarget / 2)
+	local try = 0
+	local spots = {}
+	while #spots < metalTarget and try < metalTarget do
+		myWorld:Clear()
+		myWorld:MeteorShower(number, minDiameter, maxDiameter)
+		number = number + 1
+		try = try + 1
+		spots = myWorld:GetMetalSpots()
+	end
+	-- render crater map
 	myWorld:RenderHeight()
 	myWorld:RenderMetal()
 	-- i have to change the height map here and not through GameFrame so that it happens before pathfinding & team LOS initialization
@@ -136,6 +161,7 @@ function gadget:RecvLuaMsg(msg, playerID)
 	-- end
 	local bri = 1
 	for i, m in pairs(myWorld.meteors) do
+		--[[
 		if m.impact.blastNoise then
 			local d = blastRayDecals[bri]
 			local filename = d.image
@@ -146,7 +172,8 @@ function gadget:RecvLuaMsg(msg, playerID)
 			bri = bri + 1
 			if bri > #blastRayDecals then bri = 1 end
 		end
-		local width = mSqrt(((myWorld.geothermalRadius * 2)^2) * 2)
+		]]--
+		local width = mSqrt(((myWorld.geothermalRadius * 2)^2) * 2) * 2
 		if m.geothermal then
 			SendToUnsynced('GroundDecal', 'maps/geothermal.png', m.sx, m.sz, width, nil, nil, 0, 0, 0, 1)
 		end

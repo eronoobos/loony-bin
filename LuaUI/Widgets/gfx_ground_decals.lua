@@ -60,11 +60,10 @@ local function DrawDecals()
     gl.PolygonOffset(-25, -2)
     gl.Culling(GL.BACK)
     gl.DepthTest(true)
-	gl.Color(1, 1, 1) -- fix color from other widgets
 	for filename, dcls in pairs(decals) do
 		gl.Texture(filename)
 		for i, d in pairs(dcls) do
-			if d.RGBA[1] then gl.Color(d.RGBA[1], d.RGBA[2] or 1, d.RGBA[3] or 1, d.RGBA[4] or 1) end
+			gl.Color(d.r, d.g, d.b, d.a)
 			if d.blendMode then gl.Blending(d.blendMode) end
 			gl.PushMatrix()
 			gl.Translate(0.5, 0.5, 0)
@@ -72,10 +71,10 @@ local function DrawDecals()
 			gl.DrawGroundQuad(d.x1, d.z1, d.x2, d.z2, false, d.rx1, d.rz1, d.rx2, d.rz2)
 			gl.PopMatrix()
 			if d.blendMode then gl.Blending('alpha') end
-			if d.RGBA[1] then gl.Color(1, 1, 1, 1) end
 		end
     	gl.Texture(false)
 	end
+	gl.Color(1, 1, 1, 1)
     gl.DepthTest(false)
     gl.Culling(false)
     gl.PolygonOffset(false)
@@ -88,7 +87,8 @@ local function ReceiveGroundDecal(filename, x, z, width, height, rotation, r, g,
 	rotation = rotation or mRandom(0, 360)
 	decals[filename] = decals[filename] or {}
 	local x1, z1, x2, z2, rx1, rz1, rx2, rz2 = QuadCoordinates(x, z, width/2, height/2)
-	local decal = { x1=x1, z1=z1, x2=x2, z2=z2, rx1=rx1, rz1=rz1, rx2=rx2, rz2=rz2, rotation = rotation, RGBA = {r,g,b,a}, blendMode = blendMode }
+	r, g, b, a = r or 1, g or 1, b or 1, a or 1
+	local decal = { x1=x1, z1=z1, x2=x2, z2=z2, rx1=rx1, rz1=rz1, rx2=rx2, rz2=rz2, rotation=rotation, r=r, g=g, b=b, a=a, blendMode=blendMode }
 	tInsert(decals[filename], decal)
 	displayList = gl.CreateList(DrawDecals)
 	-- spEcho("got ground decal", filename, x, z, width, height)

@@ -51,11 +51,22 @@ local options = {
 --// Options
 	--// Craters
 	{
+		key  = "randomseed",
+		name = "Seed",
+		desc = "Seed for initializing the random number generator. The same seed with the same parameters will generate the same map.",
+		type = "number",
+		def  = 1,
+		section = 'Craters',
+		min = 1,
+		max = 99,
+		step = 1,
+	},
+	{
 		key  = "number",
 		name = "Number",
 		desc = "Number of craters",
 		type = "number",
-		def  = "10",
+		def  = 10,
 		section = 'Craters',
 		min = 5,
 		max = 50,
