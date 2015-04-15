@@ -2,7 +2,7 @@ function widget:GetInfo()
   return {
     name      = "Ground Decals",
     desc      = "Draws decals on the ground where specified by unsynced.",
-    author    = "zoggop",
+    author    = "eronoobos",
     date      = "April 2015",
     license   = "WTFPL",
     layer     = 5,

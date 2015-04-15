@@ -18,6 +18,8 @@ local spSetHeightMapFunc	= Spring.SetHeightMapFunc
 local spSetHeightMap		= Spring.SetHeightMap
 local spAddHeightMap		= Spring.AddHeightMap 
 local spLevelHeightMap		= Spring.LevelHeightMap
+local spSetSmoothMeshFunc = Spring.SetSmoothMeshFunc
+local spSetSmoothMesh = Spring.SetSmoothMesh
 local spSetMetalAmount = Spring.SetMetalAmount
 local spCreateFeature = Spring.CreateFeature
 local spGetGroundHeight = Spring.GetGroundHeight
@@ -80,9 +82,10 @@ function gadget:GameID(gameID)
 	thisGameID = gameID
 end
 
+
 function gadget:Initialize()
-	-- return
 	spEcho("initializing loony bin gadget...")
+
 	-- default config values
 	local randomseed = 1
 	local minDiameter, maxDiameter = 5, 400
@@ -93,6 +96,8 @@ function gadget:Initialize()
 	local metalTarget = 24
 	local geothermalTarget = 4
 	local showerRamps = false
+	local startSize = 150
+
 	-- get map options
 	local options = spGetMapOptions()
 	if options ~= nil then
@@ -118,22 +123,41 @@ function gadget:Initialize()
 		end
 	end
 	spEcho("randomseed " .. randomseed, "maxDiameter " .. maxDiameter, "mirror " .. mirror, "metalTarget " .. metalTarget, "geothermalTarget " .. geothermalTarget, "showerRamps " .. tostring(showerRamps))
+
 	-- get team start locations
 	local starts = {}
-	if Game.startPosType ~= 2 then
-		for i, teamID in pairs(Spring.GetTeamList()) do
-			if teamID ~= Spring.GetGaiaTeamID() then
-				local x, y, z = Spring.GetTeamStartPosition(teamID)
-				if not (x == 0 and z == 0) then
+	local numStartMeteors = 0
+	local numZeroZero = 0
+	for i, teamID in pairs(Spring.GetTeamList()) do
+		if teamID ~= Spring.GetGaiaTeamID() then
+			local x, y, z = Spring.GetTeamStartPosition(teamID)
+			if Game.startPosType == 2 then
+				numStartMeteors = numStartMeteors + 1
+			else
+				if x == 0 and z == 0 then
+					numZeroZero = numZeroZero + 1
+				else
 					tInsert(starts, {x=x, z=z})
 				end
 			end
 		end
 	end
+	if numZeroZero > 0 and #starts == 0 then
+		numStartMeteors = numZeroZero
+	end
+	if numStartMeteors > 0 then
+		if mirror ~= "none" then
+			numStartMeteors = mCeil(numStartMeteors / 2)
+		end
+	end
+	spEcho(#starts .. " set start locations", numStartMeteors .. " random starts (times two if mirrored)")
+
 	-- create crater map
 	mRandomSeed(randomseed)
 	myWorld = Loony.World(Game.mapX, Game.mapY, metersPerElmo, gravity, density, mirror, metalTarget, geothermalTarget, showerRamps)
-	myWorld.blastRayCraterNumber = mRandom(1, #blastRayDecals)
+	local testM = myWorld:AddMeteor(1, 1, startSize) -- test start crater radius
+	local startRadius = testM.impact.craterRadius
+	testM:Delete()
 	local number = mCeil(metalTarget / 2)
 	local try = 0
 	local spots = {}
@@ -142,12 +166,28 @@ function gadget:Initialize()
 		startMeteors = {}
 		myWorld:Clear()
 		myWorld:MeteorShower(number, minDiameter, maxDiameter)
-		for i, start in pairs(starts) do
-			-- sx, sz, diameterImpactor, velocityImpactKm, angleImpact, densityImpactor, age, metal, geothermal, seedSeed, ramps, mirrorMeteor, noMirror
-			local m = myWorld:AddMeteor(start.x, start.z, 150, nil, nil, nil, nil, 3, false, nil, nil, nil, true)
-			if showerRamps then m:Add180Ramps() end
-			m.metalGeothermalRampSet = true
-			tInsert(startMeteors, m)
+		if numStartMeteors > 0 then
+			for i = 1, numStartMeteors do
+				local x = (startRadius * 1.5) + mRandom(Game.mapSizeX - (startRadius * 3))
+				local z = (startRadius * 1.5) + mRandom(Game.mapSizeZ - (startRadius * 3))
+				local m = myWorld:AddMeteor(x, z, startSize, nil, nil, nil, nil, 3, false)
+				if showerRamps then m:Add180Ramps() end
+				m.metalGeothermalRampSet = true
+				if m.mirrorMeteor then
+					if showerRamps then m.mirrorMeteor:Add180Ramps() end
+					m.mirrorMeteor.metalGeothermalRampSet = true
+					tInsert(startMeteors, m.mirrorMeteor)
+				end
+				tInsert(startMeteors, m)
+			end
+		else
+			for i, start in pairs(starts) do
+				-- sx, sz, diameterImpactor, velocityImpactKm, angleImpact, densityImpactor, age, metal, geothermal, seedSeed, ramps, mirrorMeteor, noMirror
+				local m = myWorld:AddMeteor(start.x, start.z, startSize, nil, nil, nil, nil, 3, false, nil, nil, nil, true)
+				if showerRamps then m:Add180Ramps() end
+				m.metalGeothermalRampSet = true
+				tInsert(startMeteors, m)
+			end
 		end
 		myWorld:SetMetalGeothermalRamp()
 		myWorld:ResetMeteorAges()
@@ -158,11 +198,13 @@ function gadget:Initialize()
 	end
 	spEcho("found crater map in " .. try .. " tries")
 	spEcho(number .. " craters", maxDiameter .. " maxDiameter", #spots .. " metal spots (target: " .. metalTarget .. ")")
+
 	-- explicitly set start crater characteristics
 	for i, m in pairs(startMeteors) do
 		m.impact.bowlPower = 2
 		m.impact.craterDepth = m.impact.craterDepth * 0.5
 	end
+
 	-- render crater map
 	myWorld:RenderHeight()
 	myWorld:RenderMetal()
@@ -171,7 +213,9 @@ function gadget:Initialize()
 	while not heightRenderComplete or not metalRenderComplete do
 		myWorld:RendererFrame(i)
 	end
-	local featureslist = myWorld:GetFeaturelist() -- get geovents from Loony
+
+	local featureslist = myWorld:GetFeaturelist() -- get geovents
+
 	-- add reclaimable rocks to empty craters
 	local rockCount = 0
 	local maxRocks = mFloor(#myWorld.meteors * 0.2)
@@ -189,6 +233,7 @@ function gadget:Initialize()
 		end
 	end
 	spEcho(rockCount .. " rocks created of " .. maxRocks .. " maximum")
+
 	-- create features on map
 	for i,fDef in pairs(featureslist) do
 		local stop = false
@@ -202,6 +247,7 @@ function gadget:Initialize()
 		end
 	end
 end
+
 
 function gadget:RecvLuaMsg(msg, playerID)
 	if msg ~= "Ground Decal Widget Loaded" then return end
@@ -243,6 +289,15 @@ function Loony.CompleteRenderer(renderer)
 	local mapRuler = renderer.mapRuler
 	if renderer.renderType == "Height" then
 		local baselevel = 200 - renderer.heightBuf.minHeight
+		-- write smoothmesh
+		spSetSmoothMeshFunc(function()
+			for x, yy in pairs(renderer.data) do
+				for y, height in pairs(yy) do
+					local sx, sz = mapRuler:XYtoXZ(x, y)
+					spSetSmoothMesh(sx, sz, baselevel+height)
+				end
+			end
+		end)
 		-- write height map array to spring
 		spSetHeightMapFunc(function()
 			for x, yy in pairs(renderer.data) do
