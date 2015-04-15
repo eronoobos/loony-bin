@@ -56,7 +56,6 @@ local Loony = include "LoonyModule/loony.lua"
 local myWorld
 local heightRenderComplete, metalRenderComplete
 local metalSpots = {}
-local waterlevel = "dry"
 local thisGameID = 0
 
 local rockFeatureNames = {
@@ -82,6 +81,7 @@ function gadget:GameID(gameID)
 end
 
 function gadget:Initialize()
+	-- return
 	spEcho("initializing loony bin gadget...")
 	-- default config values
 	local randomseed = 1
@@ -98,9 +98,6 @@ function gadget:Initialize()
 	if options ~= nil then
 		if options.randomseed ~= nil then
 			randomseed = tonumber(options.randomseed)
-		end
-		if options.waterlevel ~= nil then
-			waterlevel = options.waterlevel
 		end
 		if options.size == "large" then
 			minDiameter, maxDiameter = 25, 800
@@ -120,6 +117,7 @@ function gadget:Initialize()
 			showerRamps = tonumber(options.ramps) == 1
 		end
 	end
+	spEcho("randomseed " .. randomseed, "maxDiameter " .. maxDiameter, "mirror " .. mirror, "metalTarget " .. metalTarget, "geothermalTarget " .. geothermalTarget, "showerRamps " .. tostring(showerRamps))
 	-- get team start locations
 	local starts = {}
 	if Game.startPosType ~= 2 then
@@ -139,13 +137,17 @@ function gadget:Initialize()
 	local number = mCeil(metalTarget / 2)
 	local try = 0
 	local spots = {}
+	local startMeteors = {}
 	while #spots < metalTarget and try < 50 do
+		startMeteors = {}
 		myWorld:Clear()
 		myWorld:MeteorShower(number, minDiameter, maxDiameter)
 		for i, start in pairs(starts) do
 			-- sx, sz, diameterImpactor, velocityImpactKm, angleImpact, densityImpactor, age, metal, geothermal, seedSeed, ramps, mirrorMeteor, noMirror
-			local m = myWorld:AddMeteor(start.x, start.z, 120, nil, nil, nil, nil, 3, false, nil, nil, nil, true)
+			local m = myWorld:AddMeteor(start.x, start.z, 150, nil, nil, nil, nil, 3, false, nil, nil, nil, true)
+			if showerRamps then m:Add180Ramps() end
 			m.metalGeothermalRampSet = true
+			tInsert(startMeteors, m)
 		end
 		myWorld:SetMetalGeothermalRamp()
 		myWorld:ResetMeteorAges()
@@ -156,6 +158,11 @@ function gadget:Initialize()
 	end
 	spEcho("found crater map in " .. try .. " tries")
 	spEcho(number .. " craters", maxDiameter .. " maxDiameter", #spots .. " metal spots (target: " .. metalTarget .. ")")
+	-- explicitly set start crater characteristics
+	for i, m in pairs(startMeteors) do
+		m.impact.bowlPower = 2
+		m.impact.craterDepth = m.impact.craterDepth * 0.5
+	end
 	-- render crater map
 	myWorld:RenderHeight()
 	myWorld:RenderMetal()
@@ -235,17 +242,7 @@ end
 function Loony.CompleteRenderer(renderer)
 	local mapRuler = renderer.mapRuler
 	if renderer.renderType == "Height" then
-		-- determine base level
 		local baselevel = 200 - renderer.heightBuf.minHeight
-		if waterlevel == "dry" then
-			baselevel = 200 - renderer.heightBuf.minHeight
-		elseif waterlevel == "pools" then
-			baselevel = (0-renderer.heightBuf.minHeight) * 0.5
-		elseif waterlevel == "lakes" then
-			baselevel = renderer.heightBuf.maxHeight * 0.25
-		elseif waterlevel == "ocean" then
-			baselevel = 0 - (renderer.heightBuf.maxHeight * 0.25)
-		end
 		-- write height map array to spring
 		spSetHeightMapFunc(function()
 			for x, yy in pairs(renderer.data) do
