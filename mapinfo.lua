@@ -207,12 +207,12 @@ local mapinfo = {
 	teams = {
 		[0] = {startPos = {x = 1228, z = 1228}},
 		[1] = {startPos = {x = 4916, z = 4916}},
-		[2] = {startPos = {x = 2456, z = 2456}},
-		[3] = {startPos = {x = 3684, z = 3684}},
-		[4] = {startPos = {x = 1228, z = 3684}},
-		[5] = {startPos = {x = 4916, z = 2456}},
-		[6] = {startPos = {x = 2456, z = 4916}},
-		[7] = {startPos = {x = 3684, z = 1228}},
+		[2] = {startPos = {x = 1228, z = 3684}},
+		[3] = {startPos = {x = 4916, z = 2456}},
+		[4] = {startPos = {x = 2456, z = 4916}},
+		[5] = {startPos = {x = 3684, z = 1228}},
+		[6] = {startPos = {x = 2456, z = 2456}},
+		[7] = {startPos = {x = 3684, z = 3684}},
 	},
 
 	terrainTypes = {

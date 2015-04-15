@@ -1,5 +1,3 @@
 - fix meteor shower min and max diameter
 - create or find better detailtex
-- sprinkle some randomly placed, reclaimable, easily distinguishable rocks around the map
 - find a way to get a new random seed every game?
-- idea for metal spots: bring back non-reclaimable features, but make them disappear if a building is on top of them, and reappear when it's gone. might be a bad idea though, because players will expect the rocks to be reclaimable

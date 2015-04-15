@@ -82,9 +82,8 @@ local options = {
 		def  = "rotational",
 		section = 'Craters',
 		items = {
-			{ key = "rotational",  name = "Rotational",  desc = "rotational symmetry" },
-			{ key = "reflectionalx",   name = "Reflectional X-Axis",   desc = "east and west are mirror images" },
-			{ key = "reflectionalz", name = "Reflectional Z-Axis", desc = "north and south are mirror images" },
+			{ key = "rotational",  name = "180-Degree Rotational", desc = "symmetry is rotated around the map center by 180 degrees" },
+			{ key = "reflectionalx",   name = "X-Axis", desc = "east and west are symmetrical" },
 			{ key = "none", name = "None", desc = "no symmetry" },
 		},
 	},

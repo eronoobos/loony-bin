@@ -59,6 +59,15 @@ local metalSpots = {}
 local waterlevel = "dry"
 local thisGameID = 0
 
+local rockFeatureNames = {
+	"GreyRock6",
+	"brock_2",
+	"brock_1",
+	"agorm_rock4",
+	"agorm_rock5",
+	"pdrock4",
+}
+
 local blastRayDecals = {
 	{image = 'maps/blastrays1.png', innerWidth = 37, width = 256 },
 	{image = 'maps/blastrays2.png', innerWidth = 20, width = 256 },
@@ -117,7 +126,9 @@ function gadget:Initialize()
 		for i, teamID in pairs(Spring.GetTeamList()) do
 			if teamID ~= Spring.GetGaiaTeamID() then
 				local x, y, z = Spring.GetTeamStartPosition(teamID)
-				tInsert(starts, {x=x, z=z})
+				if not (x == 0 and z == 0) then
+					tInsert(starts, {x=x, z=z})
+				end
 			end
 		end
 	end
@@ -128,7 +139,7 @@ function gadget:Initialize()
 	local number = mCeil(metalTarget / 2)
 	local try = 0
 	local spots = {}
-	while #spots < metalTarget and try < metalTarget do
+	while #spots < metalTarget and try < 50 do
 		myWorld:Clear()
 		myWorld:MeteorShower(number, minDiameter, maxDiameter)
 		for i, start in pairs(starts) do
@@ -140,8 +151,11 @@ function gadget:Initialize()
 		myWorld:ResetMeteorAges()
 		number = number + 1
 		try = try + 1
+		maxDiameter = maxDiameter + 10
 		spots = myWorld:GetMetalSpots()
 	end
+	spEcho("found crater map in " .. try .. " tries")
+	spEcho(number .. " craters", maxDiameter .. " maxDiameter", #spots .. " metal spots (target: " .. metalTarget .. ")")
 	-- render crater map
 	myWorld:RenderHeight()
 	myWorld:RenderMetal()
@@ -151,6 +165,23 @@ function gadget:Initialize()
 		myWorld:RendererFrame(i)
 	end
 	local featureslist = myWorld:GetFeaturelist() -- get geovents from Loony
+	-- add reclaimable rocks to empty craters
+	local rockCount = 0
+	local maxRocks = mFloor(#myWorld.meteors * 0.2)
+	local rfi = mRandom(1, #rockFeatureNames)
+	for i = #myWorld.meteors, 1, -1 do
+		local m = myWorld.meteors[i]
+		if not m.geothermal and #m.impact.metalSpots == 0 then
+			local offsetX = mFloor( (m.impact.craterRadius/6) - (mRandom() * (m.impact.craterRadius/3)) )
+			local offsetZ = mFloor( (m.impact.craterRadius/6) - (mRandom() * (m.impact.craterRadius/3)) )
+			tInsert(featureslist, {name = rockFeatureNames[rfi], x = m.sx+offsetX, z = m.sz+offsetZ, rot = mRandom(0, 360)})
+			rfi = rfi + 1
+			if rfi > #rockFeatureNames then rfi = 1 end
+			rockCount = rockCount + 1
+			if rockCount == maxRocks then break end
+		end
+	end
+	spEcho(rockCount .. " rocks created of " .. maxRocks .. " maximum")
 	-- create features on map
 	for i,fDef in pairs(featureslist) do
 		local stop = false
@@ -170,7 +201,7 @@ function gadget:RecvLuaMsg(msg, playerID)
 	SendToUnsynced('ClearGroundDecals')
 	-- add metal spot decals
 	for i, spot in pairs(metalSpots) do
-		SendToUnsynced('GroundDecal', "maps/geothermal.png", spot.x, spot.z, myWorld.metalSpotRadius*8, nil, nil, 0.5, 0, 0, 0.25)
+		SendToUnsynced('GroundDecal', "maps/mex.png", spot.x, spot.z, myWorld.metalSpotRadius*6, nil, nil, 0.5, 0, 0, 0.25)
 	end
 	-- add geotermal decals
 	for i, m in pairs(myWorld.meteors) do
