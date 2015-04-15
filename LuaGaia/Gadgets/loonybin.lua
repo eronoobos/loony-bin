@@ -288,16 +288,7 @@ end
 function Loony.CompleteRenderer(renderer)
 	local mapRuler = renderer.mapRuler
 	if renderer.renderType == "Height" then
-		local baselevel = 200 - renderer.heightBuf.minHeight
-		-- write smoothmesh
-		spSetSmoothMeshFunc(function()
-			for x, yy in pairs(renderer.data) do
-				for y, height in pairs(yy) do
-					local sx, sz = mapRuler:XYtoXZ(x, y)
-					spSetSmoothMesh(sx, sz, baselevel+height)
-				end
-			end
-		end)
+		local baselevel = 200 - renderer.heightBuf.minHeight -- minHeight is negative
 		-- write height map array to spring
 		spSetHeightMapFunc(function()
 			for x, yy in pairs(renderer.data) do

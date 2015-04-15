@@ -26,8 +26,8 @@ local mapinfo = {
 
 
 	smf = {
-		minheight = 0,
-		maxheight = 1000,
+		minheight = 400,
+		maxheight = 700,
 	},
 
 	sound = {
