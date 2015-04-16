@@ -33,13 +33,21 @@ local mSin = math.sin
 local mSqrt = math.sqrt
 local mCeil = math.ceil
 local mFloor = math.floor
+local mMax = math.max
+local mMin = math.min
 
 local tInsert = table.insert
+local tRemove = table.remove
 
 -- local functions
 
 local function tGetRandom(fromTable)
   return fromTable[mRandom(1, #fromTable)]
+end
+
+local function tRemoveRandom(fromTable)
+	if not fromTable then return end
+	return tRemove(fromTable, mRandom(1, #fromTable))
 end
 
 local function CirclePos(cx, cy, dist, angle)
@@ -49,6 +57,16 @@ local function CirclePos(cx, cy, dist, angle)
   return x, y
 end
 
+local function WithinBox(x, z, box)
+	-- spEcho(box[1], box[2], box[3], box[4], "within?", x, z)
+	return x > box[1] and z > box[2] and x < box[3] and z < box[4]
+end
+
+local function FeedWatchDog()
+	if Spring.ClearWatchDogTimer then
+		Spring.ClearWatchDogTimer()
+	end
+end
 
 ----- SPRING SYNCED ------------------------------------------
 if (gadgetHandler:IsSyncedCode()) then
@@ -59,6 +77,34 @@ local myWorld
 local heightRenderComplete, metalRenderComplete
 local metalSpots = {}
 local thisGameID = 0
+
+local precalcStartBoxes = {
+	-- [number of allyteams] = {
+		-- {xmin, zmin, xmax, zmax}
+	-- }
+	[2] = {
+		{0, 0, 0.5, 1},
+		{0.5, 0, 1, 1}
+	},
+	[4] = {
+		{0, 0, 0.5, 0.5},
+		{0.5, 0.5, 1, 1},
+		{0, 0.5, 0.5, 1},
+		{0.5, 0, 1, 0.5}
+	},
+}
+for num, boxes in pairs(precalcStartBoxes) do
+	for i, box in pairs(boxes) do
+		for ii, coord in pairs(box) do
+			if i == 1 or i == 2 then
+				coord = coord * Game.mapSizeX
+			else
+				coord = coord * Game.mapSizeZ
+			end
+			precalcStartBoxes[num][i][ii] = coord
+		end
+	end
+end
 
 local rockFeatureNames = {
 	"GreyRock6",
@@ -86,15 +132,18 @@ end
 function gadget:Initialize()
 	spEcho("initializing loony bin gadget...")
 
+	if not Spring.ClearWatchDogTimer then
+		pcall(Spring.SetConfigInt,"HangTimeout",123456789,1)
+		pcall(Spring.SetConfigInt,"HangTimeout",123456789,true)
+	end
+
 	-- default config values
 	local randomseed = 1
 	local minDiameter, maxDiameter = 5, 400
 	local metersPerElmo = 8
 	local gravity = (Game.gravity / 130) * 9.8
 	local density = (Game.mapHardness / 100) * 2500
-	local mirror = "rotational"
-	local metalTarget = 24
-	local geothermalTarget = 4
+	local mirror = "auto"
 	local showerRamps = false
 	local startSize = 150
 
@@ -112,49 +161,80 @@ function gadget:Initialize()
 			minDiameter, maxDiameter = 1, 200
 		end
 		mirror = options.mirror or "rotational"
-		if options.metals ~= nil then
-			metalTarget = tonumber(options.metals)
-		end
-		if options.geothermals ~= nil then
-			geothermalTarget = tonumber(options.geothermals)
-		end
 		if options.ramps ~= nil then
 			showerRamps = tonumber(options.ramps) == 1
 		end
 	end
-	spEcho("randomseed " .. randomseed, "maxDiameter " .. maxDiameter, "mirror " .. mirror, "metalTarget " .. metalTarget, "geothermalTarget " .. geothermalTarget, "showerRamps " .. tostring(showerRamps))
+	spEcho("randomseed " .. randomseed, "maxDiameter " .. maxDiameter, "mirror " .. mirror, "showerRamps " .. tostring(showerRamps))
 
-	-- get team start locations
-	local starts = {}
-	local numStartMeteors = 0
-	local numZeroZero = 0
+	
+	-- get number of allyteams
+	local gaiaTeamInfo = { Spring.GetTeamInfo(Spring.GetGaiaTeamID()) }
+	local gaiaAllyTeamID = gaiaTeamInfo[6]
+	local allyTeams = {}
+	for i, allyTeamID in pairs(Spring.GetAllyTeamList()) do
+		if allyTeamID ~= gaiaAllyTeamID then
+			tInsert(allyTeams, allyTeamID)
+		end
+	end
+	if mirror == "auto" then
+		if #allyTeams % 2 == 0 then
+			mirror = "rotational"
+		else
+			mirror = "none"
+		end
+		spEcho("mirror", mirror)
+	end
+	-- get startboxes
+	local numPrimaryAllyTeams = #allyTeams
+	if mirror ~= "none" then
+		numPrimaryAllyTeams = #allyTeams / 2
+	end
+	local startBoxes = {}
+	local primaryAllyTeams = {}
+	for i, allyTeamID in pairs(allyTeams) do
+		if Game.startPosType == 2 then
+			startBoxes[allyTeamID] = { Spring.GetAllyTeamStartBox(allyTeamID) }
+		elseif mirror == "none" then
+			startBoxes[allyTeamID] = {0, 0, Game.mapSizeX, Game.mapSizeZ}
+		else
+			startBoxes[allyTeamID] = precalcStartBoxes[#allyTeams][i]
+		end
+		if (allyTeamID+1) % 2 ~= 0 then
+			primaryAllyTeams[allyTeamID] = true
+		end
+		spEcho("allyteamID, start box", allyTeamID, startBoxes[allyTeamID][1], startBoxes[allyTeamID][2], startBoxes[allyTeamID][3], startBoxes[allyTeamID][4])
+	end
+	-- get number of teams & start meteors
+	local startMeteorTeams = {}
+	local teamsByAlly = {}
+	local teamCount = 0
 	for i, teamID in pairs(Spring.GetTeamList()) do
 		if teamID ~= Spring.GetGaiaTeamID() then
-			local x, y, z = Spring.GetTeamStartPosition(teamID)
-			if Game.startPosType == 2 then
-				numStartMeteors = numStartMeteors + 1
+			local teamInfo = { Spring.GetTeamInfo(teamID) }
+			local allyTeamID = teamInfo[6]
+			if primaryAllyTeams[allyTeamID] then
+				tInsert(startMeteorTeams, {teamID=teamID, box=startBoxes[allyTeamID]})
+				spEcho("primary ally, team", allyTeamID, teamID)
 			else
-				if x == 0 and z == 0 then
-					numZeroZero = numZeroZero + 1
-				else
-					tInsert(starts, {x=x, z=z})
-				end
+				spEcho("mirror ally, team", allyTeamID, teamID)
 			end
+			teamsByAlly[allyTeamID] = teamsByAlly[allyTeamID] or {}
+			tInsert(teamsByAlly[allyTeamID], teamID)
+			teamCount = teamCount + 1
 		end
 	end
-	if numZeroZero > 0 and #starts == 0 then
-		numStartMeteors = numZeroZero
-	end
-	if numStartMeteors > 0 then
-		if mirror ~= "none" then
-			numStartMeteors = mCeil(numStartMeteors / 2)
-		end
-	end
-	spEcho(#starts .. " set start locations", numStartMeteors .. " random starts (times two if mirrored)")
+	spEcho(teamCount .. " teams")
+
+	metalTarget = teamCount * 9
+	geothermalTarget = teamCount
+	local metalSpotMaxPerCrater = mMax(3, teamCount)
+	spEcho("metalTarget " .. metalTarget, "geothermalTarget " .. geothermalTarget, "metalSpotMaxPerCrater " .. metalSpotMaxPerCrater)
 
 	-- create crater map
 	mRandomSeed(randomseed)
 	myWorld = Loony.World(Game.mapX, Game.mapY, metersPerElmo, gravity, density, mirror, metalTarget, geothermalTarget, showerRamps)
+	myWorld.metalSpotMaxPerCrater = metalSpotMaxPerCrater
 	local testM = myWorld:AddMeteor(1, 1, startSize) -- test start crater radius
 	local startRadius = testM.impact.craterRadius
 	testM:Delete()
@@ -162,47 +242,56 @@ function gadget:Initialize()
 	local try = 0
 	local spots = {}
 	local startMeteors = {}
-	while #spots < metalTarget and try < 50 do
+	while #spots < metalTarget and try < 15 do
+		FeedWatchDog()
 		startMeteors = {}
 		myWorld:Clear()
 		myWorld:MeteorShower(number, minDiameter, maxDiameter)
-		if numStartMeteors > 0 then
-			for i = 1, numStartMeteors do
-				local x = (startRadius * 1.5) + mRandom(Game.mapSizeX - (startRadius * 3))
-				local z = (startRadius * 1.5) + mRandom(Game.mapSizeZ - (startRadius * 3))
-				local m = myWorld:AddMeteor(x, z, startSize, nil, nil, nil, nil, 3, false)
-				if showerRamps then m:Add180Ramps() end
-				m.metalGeothermalRampSet = true
-				if m.mirrorMeteor then
-					if showerRamps then m.mirrorMeteor:Add180Ramps() end
-					m.mirrorMeteor.metalGeothermalRampSet = true
-					tInsert(startMeteors, m.mirrorMeteor)
-				end
-				tInsert(startMeteors, m)
+		-- add start meteors
+		for i, smt in pairs(startMeteorTeams) do
+			local x = mRandom(smt.box[1]+startRadius, smt.box[3]-startRadius)
+			local z = mRandom(smt.box[2]+startRadius, smt.box[4]-startRadius)
+			-- spEcho(smt.box[1], smt.box[2], smt.box[3], smt.box[4], startRadius, x, z)
+			local m = myWorld:AddMeteor(x, z, startSize, nil, nil, nil, nil, 3, false)
+			if showerRamps then m:Add180Ramps() end
+			m.metalGeothermalRampSet = true
+			if m.mirrorMeteor then
+				if showerRamps then m.mirrorMeteor:Add180Ramps() end
+				m.mirrorMeteor.metalGeothermalRampSet = true
+				tInsert(startMeteors, {meteor = m.mirrorMeteor})
 			end
-		else
-			for i, start in pairs(starts) do
-				-- sx, sz, diameterImpactor, velocityImpactKm, angleImpact, densityImpactor, age, metal, geothermal, seedSeed, ramps, mirrorMeteor, noMirror
-				local m = myWorld:AddMeteor(start.x, start.z, startSize, nil, nil, nil, nil, 3, false, nil, nil, nil, true)
-				if showerRamps then m:Add180Ramps() end
-				m.metalGeothermalRampSet = true
-				tInsert(startMeteors, m)
-			end
+			-- spEcho("start meteor", m.sx, m.sz, "mirror", m.mirrorMeteor.sx, m.mirrorMeteor.sz)
+			tInsert(startMeteors, {meteor = m, teamID = smt.teamID})
 		end
 		myWorld:SetMetalGeothermalRamp()
 		myWorld:ResetMeteorAges()
 		number = number + 1
 		try = try + 1
-		maxDiameter = maxDiameter + 10
+		maxDiameter = maxDiameter + 5
 		spots = myWorld:GetMetalSpots()
+		spEcho("try " .. try, "number " .. number, "spots " .. #spots)
 	end
 	spEcho("found crater map in " .. try .. " tries")
 	spEcho(number .. " craters", maxDiameter .. " maxDiameter", #spots .. " metal spots (target: " .. metalTarget .. ")")
 
 	-- explicitly set start crater characteristics
-	for i, m in pairs(startMeteors) do
+	-- give team start locations to luarules gadget
+	for i, sm in pairs(startMeteors) do
+		local m = sm.meteor
 		m.impact.bowlPower = 2
 		m.impact.craterDepth = m.impact.craterDepth * 0.5
+		local tID = sm.teamID
+		if not tID then
+			for allyTeamID, box in pairs(startBoxes) do
+				if WithinBox(m.sx, m.sz, box) then
+					tID = tRemoveRandom(teamsByAlly[allyTeamID])
+					break
+				end
+			end
+		end
+		if tID then
+			Spring.SendLuaRulesMsg('DynamicStartPositions add ' .. tID .. ' ' .. m.sx .. ' ' .. m.sz)
+		end
 	end
 
 	-- render crater map
@@ -211,6 +300,7 @@ function gadget:Initialize()
 	-- i have to change the height map here and not through GameFrame so that it happens before pathfinding & team LOS initialization
 	local i = 1
 	while not heightRenderComplete or not metalRenderComplete do
+		FeedWatchDog()
 		myWorld:RendererFrame(i)
 	end
 
@@ -292,6 +382,7 @@ function Loony.CompleteRenderer(renderer)
 		-- write height map array to spring
 		spSetHeightMapFunc(function()
 			for x, yy in pairs(renderer.data) do
+				FeedWatchDog()
 				for y, height in pairs(yy) do
 					local sx, sz = mapRuler:XYtoXZ(x, y)
 					spSetHeightMap(sx, sz, baselevel+height)
@@ -302,6 +393,7 @@ function Loony.CompleteRenderer(renderer)
 	elseif renderer.renderType == "Metal" then
 		-- write metal map array to spring
 		for x, yy in pairs(renderer.data) do
+			FeedWatchDog()
 			for y, mAmount in pairs(yy) do
 				spSetMetalAmount(x, y, mAmount)
 			end

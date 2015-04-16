@@ -79,9 +79,10 @@ local options = {
 		name = "Symmetry",
 		desc = "type of map symmetry",
 		type = "list",
-		def  = "rotational",
+		def  = "auto",
 		section = 'Craters',
 		items = {
+			{ key = "auto", name = "auto", desc = "determine symmetry from number of allyteams" },
 			{ key = "rotational",  name = "180-Degree Rotational", desc = "symmetry is rotated around the map center by 180 degrees" },
 			{ key = "reflectionalx",   name = "X-Axis", desc = "east and west are symmetrical" },
 			{ key = "none", name = "None", desc = "no symmetry" },
