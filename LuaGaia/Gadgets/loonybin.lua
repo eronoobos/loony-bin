@@ -79,7 +79,7 @@ local metalSpots = {}
 local thisGameID = 0
 
 local precalcStartBoxes = {
-	-- [number of allyteams] = {
+	-- [number of allyTeams] = {
 		-- {xmin, zmin, xmax, zmax}
 	-- }
 	[2] = {
@@ -143,7 +143,6 @@ function gadget:Initialize()
 	local metersPerElmo = 8
 	local gravity = (Game.gravity / 130) * 9.8
 	local density = (Game.mapHardness / 100) * 2500
-	local mirror = "auto"
 	local showerRamps = false
 	local startSize = 150
 
@@ -160,137 +159,127 @@ function gadget:Initialize()
 		elseif options.size == "small" then
 			minDiameter, maxDiameter = 1, 200
 		end
-		mirror = options.mirror or "rotational"
 		if options.ramps ~= nil then
 			showerRamps = tonumber(options.ramps) == 1
 		end
 	end
-	spEcho("randomseed " .. randomseed, "maxDiameter " .. maxDiameter, "mirror " .. mirror, "showerRamps " .. tostring(showerRamps))
+	spEcho("randomseed " .. randomseed, "maxDiameter " .. maxDiameter, "showerRamps " .. tostring(showerRamps))
 
 	
-	-- get number of allyteams
+	-- get number of allyTeams
 	local gaiaTeamInfo = { Spring.GetTeamInfo(Spring.GetGaiaTeamID()) }
 	local gaiaAllyTeamID = gaiaTeamInfo[6]
 	local allyTeams = {}
+	local allyTeamsByID = {}
 	for i, allyTeamID in pairs(Spring.GetAllyTeamList()) do
 		if allyTeamID ~= gaiaAllyTeamID then
 			tInsert(allyTeams, allyTeamID)
+			allyTeamsByID[allyTeamID] = i
 		end
 	end
-	if mirror == "auto" then
-		if #allyTeams % 2 == 0 then
-			mirror = "rotational"
-		else
-			mirror = "none"
-		end
-		spEcho("mirror", mirror)
+	local mirror = false
+	if #allyTeams == 2 or #allyTeams == 4 then
+		mirror = true
 	end
 	-- get startboxes
-	local numPrimaryAllyTeams = #allyTeams
-	if mirror ~= "none" then
-		numPrimaryAllyTeams = #allyTeams / 2
-	end
 	local startBoxes = {}
-	local primaryAllyTeams = {}
 	for i, allyTeamID in pairs(allyTeams) do
 		if Game.startPosType == 2 then
-			startBoxes[allyTeamID] = { Spring.GetAllyTeamStartBox(allyTeamID) }
-		elseif mirror == "none" then
-			startBoxes[allyTeamID] = {0, 0, Game.mapSizeX, Game.mapSizeZ}
-		else
+			-- choosen in-game, no need for picking locations for them
+			-- startBoxes[allyTeamID] = { Spring.GetAllyTeamStartBox(allyTeamID) }
+		elseif mirror then
 			startBoxes[allyTeamID] = precalcStartBoxes[#allyTeams][i]
+		else
+			startBoxes[allyTeamID] = {0, 0, Game.mapSizeX, Game.mapSizeZ}
 		end
-		if (allyTeamID+1) % 2 ~= 0 then
-			primaryAllyTeams[allyTeamID] = true
-		end
-		spEcho("allyteamID, start box", allyTeamID, startBoxes[allyTeamID][1], startBoxes[allyTeamID][2], startBoxes[allyTeamID][3], startBoxes[allyTeamID][4])
+		spEcho("allyTeamID", allyTeamID, "startbox", startBoxes[allyTeamID][1], startBoxes[allyTeamID][2], startBoxes[allyTeamID][3], startBoxes[allyTeamID][4])
 	end
-	-- get number of teams & start meteors
-	local startMeteorTeams = {}
+	local firstStartBox = startBoxes[allyTeams[1]] or {0, 0, Game.mapSizeX, Game.mapSizeZ}
+	-- get number of teams & sort into allyTeams
 	local teamsByAlly = {}
 	local teamCount = 0
 	for i, teamID in pairs(Spring.GetTeamList()) do
 		if teamID ~= Spring.GetGaiaTeamID() then
 			local teamInfo = { Spring.GetTeamInfo(teamID) }
 			local allyTeamID = teamInfo[6]
-			if primaryAllyTeams[allyTeamID] then
-				tInsert(startMeteorTeams, {teamID=teamID, box=startBoxes[allyTeamID]})
-				spEcho("primary ally, team", allyTeamID, teamID)
-			else
-				spEcho("mirror ally, team", allyTeamID, teamID)
-			end
 			teamsByAlly[allyTeamID] = teamsByAlly[allyTeamID] or {}
 			tInsert(teamsByAlly[allyTeamID], teamID)
 			teamCount = teamCount + 1
 		end
 	end
-	spEcho(teamCount .. " teams")
+	local maxTeamsPerAlly = 0
+	for allyTeamID, teams in pairs(teamsByAlly) do
+		if #teams > maxTeamsPerAlly then
+			maxTeamsPerAlly = #teams
+		end
+	end
+	local startMeteorNumber = teamCount
+	if mirror then startMeteorNumber = maxTeamsPerAlly end
+	spEcho(teamCount .. " teamCount", maxTeamsPerAlly .. " maxTeamsPerAlly", startMeteorNumber .. " startMeteorNumber")
 
-	metalTarget = teamCount * 9
-	geothermalTarget = teamCount
-	local metalSpotMaxPerCrater = mMax(3, teamCount)
+	local metalTarget = teamCount * 9
+	local geothermalTarget = teamCount
+	local metalSpotMaxPerCrater = 3 -- anything higher than this leads to funky assymetry of metal spots
 	spEcho("metalTarget " .. metalTarget, "geothermalTarget " .. geothermalTarget, "metalSpotMaxPerCrater " .. metalSpotMaxPerCrater)
+	local unMirroredMetalTarget = metalTarget
+	if mirror then unMirroredMetalTarget = unMirroredMetalTarget / #allyTeams end
 
 	-- create crater map
 	mRandomSeed(randomseed)
-	myWorld = Loony.World(Game.mapX, Game.mapY, metersPerElmo, gravity, density, mirror, metalTarget, geothermalTarget, showerRamps)
+	myWorld = Loony.World(Game.mapX, Game.mapY, metersPerElmo, gravity, density, "none", metalTarget, geothermalTarget, showerRamps)
 	myWorld.metalSpotMaxPerCrater = metalSpotMaxPerCrater
 	local testM = myWorld:AddMeteor(1, 1, startSize) -- test start crater radius
 	local startRadius = testM.impact.craterRadius
 	testM:Delete()
-	local number = mCeil(metalTarget / 2)
+	local number = teamCount * 5
+	if mirror then number = number / #allyTeams end
 	local try = 0
 	local spots = {}
-	local startMeteors = {}
-	while #spots < metalTarget and try < 15 do
+	while #spots < metalTarget and try < 20 do
 		FeedWatchDog()
-		startMeteors = {}
 		myWorld:Clear()
 		myWorld:MeteorShower(number, minDiameter, maxDiameter)
 		-- add start meteors
-		for i, smt in pairs(startMeteorTeams) do
-			local x = mRandom(smt.box[1]+startRadius, smt.box[3]-startRadius)
-			local z = mRandom(smt.box[2]+startRadius, smt.box[4]-startRadius)
-			-- spEcho(smt.box[1], smt.box[2], smt.box[3], smt.box[4], startRadius, x, z)
-			local m = myWorld:AddMeteor(x, z, startSize, nil, nil, nil, nil, 3, false)
-			if showerRamps then m:Add180Ramps() end
-			m.metalGeothermalRampSet = true
-			if m.mirrorMeteor then
-				if showerRamps then m.mirrorMeteor:Add180Ramps() end
-				m.mirrorMeteor.metalGeothermalRampSet = true
-				tInsert(startMeteors, {meteor = m.mirrorMeteor})
-			end
-			-- spEcho("start meteor", m.sx, m.sz, "mirror", m.mirrorMeteor.sx, m.mirrorMeteor.sz)
-			tInsert(startMeteors, {meteor = m, teamID = smt.teamID})
+		for n = 1, startMeteorNumber do
+			local x = mRandom(firstStartBox[1]+startRadius, firstStartBox[3]-startRadius)
+			local z = mRandom(firstStartBox[2]+startRadius, firstStartBox[4]-startRadius)
+			myWorld:AddStartMeteor(x, z, startSize)
 		end
-		myWorld:SetMetalGeothermalRamp()
-		myWorld:ResetMeteorAges()
+		if mirror then
+			if #allyTeams == 2 then
+				myWorld:MirrorAll(true, true)
+			elseif #allyTeams == 4 then
+				myWorld:MirrorAll(true, false)
+				myWorld:MirrorAll(false, true)
+			end
+			myWorld:SetMetalGeothermalRampPostMirrorAll()
+			myWorld:ResetMeteorAges()
+		else
+			myWorld:SetMetalGeothermalRamp()
+			myWorld:ResetMeteorAges()
+		end
+		spots = myWorld:GetMetalSpots()
+		spEcho("try " .. try, "number " .. number, "spots " .. #spots)
 		number = number + 1
 		try = try + 1
 		maxDiameter = maxDiameter + 5
-		spots = myWorld:GetMetalSpots()
-		spEcho("try " .. try, "number " .. number, "spots " .. #spots)
 	end
-	spEcho("found crater map in " .. try .. " tries")
-	spEcho(number .. " craters", maxDiameter .. " maxDiameter", #spots .. " metal spots (target: " .. metalTarget .. ")")
+	spEcho("found crater map in " .. try-1 .. " tries")
+	spEcho(#myWorld.meteors .. " craters", maxDiameter-5 .. " maxDiameter", #spots .. " metal spots (target: " .. metalTarget .. ")")
 
-	-- explicitly set start crater characteristics
 	-- give team start locations to luarules gadget
-	for i, sm in pairs(startMeteors) do
-		local m = sm.meteor
-		m.impact.bowlPower = 2
-		m.impact.craterDepth = m.impact.craterDepth * 0.5
-		local tID = sm.teamID
-		if not tID then
+	for i, m in pairs(myWorld.meteors) do
+		if m.start then
+			local tID
 			for allyTeamID, box in pairs(startBoxes) do
 				if WithinBox(m.sx, m.sz, box) then
 					tID = tRemoveRandom(teamsByAlly[allyTeamID])
 					break
 				end
 			end
-		end
-		if tID then
-			Spring.SendLuaRulesMsg('DynamicStartPositions add ' .. tID .. ' ' .. m.sx .. ' ' .. m.sz)
+			if tID then
+				Spring.SendLuaRulesMsg('DynamicStartPositions set ' .. tID .. ' ' .. m.sx .. ' ' .. m.sz)
+			end
 		end
 	end
 

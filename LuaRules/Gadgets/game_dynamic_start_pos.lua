@@ -25,11 +25,16 @@ local function splitIntoWords(s)
 end
 
 local startPositions = {}
+local origGetTeamStartPosition
 
 function gadget:Initialize()
 	-- replace Start Positions
+	origGetTeamStartPosition = Spring.GetTeamStartPosition
 	Spring.GetTeamStartPosition = function(teamID)
-		local start = startPositions[teamID] or {x=0, z=0}
+		local start = startPositions[teamID]
+		if not start then
+			return origGetTeamStartPosition(teamID)
+		end
 		return start.x, Spring.GetGroundHeight(start.x,start.z), start.z
 	end
 end
@@ -38,11 +43,17 @@ function gadget:RecvLuaMsg(msg, playerID)
 	if not StringBegins(msg, 'DynamicStartPositions') then return end
 	local words = splitIntoWords(msg)
 	local cmd = words[2]
-	if cmd == 'add' then
+	if cmd == 'set' then
 		local teamID = tonumber(words[3])
 		local x = tonumber(words[4])
 		local z = tonumber(words[5])
-		spEcho('received start position', teamID, x, z)
+		-- spEcho('received start position', teamID, x, z)
 		startPositions[teamID] = {x=x, z=z}
+	elseif cmd == 'clear' then
+		startPositions = {}
 	end
+end
+
+function gadget:Shutdown()
+	Spring.GetTeamStartPosition = origGetTeamStartPosition
 end
