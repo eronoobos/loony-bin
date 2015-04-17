@@ -42,13 +42,6 @@ ColorShift("atmosphere.fogcolor",   redShift)
 Scale("atmosphere.fogstart", 1.2)
 Scale("atmosphere.fogend",   1.2)
 
-ColorShift("water.planecolor",    deepRedShift)
-ColorShift("water.surfaceColor",  redShift)
-ColorShift("water.specularColor", redShift)
-ColorShift("water.diffuseColor",  redShift)
-Scale("water.surfaceAlpha", 0.75)
-Scale("water.fresnelmax", 0.25)
-
 
 ------------------------------------------------------------
 -- Absolute Settings

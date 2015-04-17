@@ -1,2 +1,4 @@
+- add second set of precalc start boxes that's more toward the corners, to prevent opposite allyteam starts from being right next to each other
+- clean up mirroring code in loony.lua
 - fix meteor shower min and max diameter
 - find a way to get a new random seed every game?

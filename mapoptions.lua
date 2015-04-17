@@ -75,40 +75,12 @@ local options = {
 		},
 	},
 	{
-		key  = "mirror",
-		name = "Symmetry",
-		desc = "type of map symmetry",
-		type = "list",
-		def  = "auto",
-		section = 'Craters',
-		items = {
-			{ key = "auto", name = "auto", desc = "determine symmetry from number of allyteams" },
-			{ key = "rotational",  name = "180-Degree Rotational", desc = "symmetry is rotated around the map center by 180 degrees" },
-			{ key = "reflectionalx",   name = "X-Axis", desc = "east and west are symmetrical" },
-			{ key = "none", name = "None", desc = "no symmetry" },
-		},
-	},
-	{
 		key  = "ramps",
 		name = "Ramps",
 		desc = "ramps to allow vehicle passage in and out of craters",
 		type = "bool",
 		def  = "false",
 		section = 'Craters',
-	},
-	{
-		key  = "waterlevel",
-		name = "Water Level",
-		desc = "water level: dry, shallow pools, lakes, or ocean",
-		type = "list",
-		def  = "dry",
-		section = 'Craters',
-		items = {
-			{ key = "dry",  name = "Dry",  desc = "no water" },
-			{ key = "pools",  name = "Crater Pools",  desc = "shallow pools in deeper craters" },
-			{ key = "lakes",   name = "Crater Lakes",   desc = "every crater is a lake" },
-			{ key = "ocean", name = "Ocean", desc = "only crater rims are above water" },
-		},
 	},
 
 	--// Atmosphere
@@ -127,28 +99,6 @@ local options = {
 	},
 
 	--// Economy
-	{
-		key  = "metals",
-		name = "Metal Spots",
-		desc = "target number of metal spots. may not be reached",
-		type = "number",
-		def  = 24,
-		section = 'Economy',
-		min = 12,
-		max = 36,
-		step = 4,
-	},
-	{
-		key  = "geothermals",
-		name = "Geothermal Vents",
-		desc = "target number of geothermal vents. may not be reached",
-		type = "number",
-		def  = 4,
-		section = 'Economy',
-		min = 0,
-		max = 8,
-		step = 2,
-	},
 	{
 		key  = 'metal',
 		name = 'Metal Production',

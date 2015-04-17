@@ -40,10 +40,6 @@ ColorShift("atmosphere.fogcolor", blackShift)
 Scale("atmosphere.fogstart", 0.5)
 Scale("atmosphere.fogend",   0.7)
 
-ColorShift("water.planecolor",   blackShift)
-ColorShift("water.surfaceColor", blueShift)
-Scale("water.surfaceAlpha", 1.5)
-
 
 ------------------------------------------------------------
 -- Absolute Settings

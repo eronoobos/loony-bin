@@ -217,7 +217,7 @@ function gadget:Initialize()
 	if mirror then startMeteorNumber = maxTeamsPerAlly end
 	spEcho(teamCount .. " teamCount", maxTeamsPerAlly .. " maxTeamsPerAlly", startMeteorNumber .. " startMeteorNumber")
 
-	local metalTarget = teamCount * 9
+	local metalTarget = (teamCount * 6) + (#allyTeams * 3)
 	local geothermalTarget = teamCount
 	local metalSpotMaxPerCrater = 3 -- anything higher than this leads to funky assymetry of metal spots
 	spEcho("metalTarget " .. metalTarget, "geothermalTarget " .. geothermalTarget, "metalSpotMaxPerCrater " .. metalSpotMaxPerCrater)
