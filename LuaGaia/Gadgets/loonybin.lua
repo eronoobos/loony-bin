@@ -46,7 +46,7 @@ local function tGetRandom(fromTable)
 end
 
 local function tRemoveRandom(fromTable)
-	if not fromTable then return end
+	if not fromTable or #fromTable == 0 then return end
 	return tRemove(fromTable, mRandom(1, #fromTable))
 end
 
@@ -139,7 +139,7 @@ function gadget:Initialize()
 
 	-- default config values
 	local randomseed = 1
-	local minDiameter, maxDiameter = 5, 400
+	local minDiameter, maxDiameter = 5, 300
 	local metersPerElmo = 8
 	local gravity = (Game.gravity / 130) * 9.8
 	local density = (Game.mapHardness / 100) * 2500
@@ -231,7 +231,7 @@ function gadget:Initialize()
 	local testM = myWorld:AddMeteor(1, 1, startSize) -- test start crater radius
 	local startRadius = testM.impact.craterRadius
 	testM:Delete()
-	local number = teamCount * 5
+	local number = mMax(12, teamCount * 5)
 	if mirror then number = number / #allyTeams end
 	local try = 0
 	local spots = {}
@@ -272,9 +272,9 @@ function gadget:Initialize()
 		if m.start then
 			local tID
 			for allyTeamID, box in pairs(startBoxes) do
-				if WithinBox(m.sx, m.sz, box) then
+				if teamsByAlly[allyTeamID] and #teamsByAlly[allyTeamID] > 0 and WithinBox(m.sx, m.sz, box) then
 					tID = tRemoveRandom(teamsByAlly[allyTeamID])
-					break
+					if tID then break end
 				end
 			end
 			if tID then
