@@ -1,3 +1,6 @@
+- do rotational symmetry for odd numbers of allyteams:
+	- instead of random position, starts are a random CirclePos, limited to smallest map dimension minus startRadius radius
+	- instead of startboxes, allyteams get two angles
 - add second set of precalc start boxes that's more toward the corners, to prevent opposite allyteam starts from being right next to each other
 - clean up mirroring code in loony.lua
 - fix meteor shower min and max diameter

@@ -228,6 +228,7 @@ function gadget:Initialize()
 	mRandomSeed(randomseed)
 	myWorld = Loony.World(Game.mapX, Game.mapY, metersPerElmo, gravity, density, "none", metalTarget, geothermalTarget, showerRamps)
 	myWorld.metalSpotMaxPerCrater = metalSpotMaxPerCrater
+	myWorld.generateBlastNoise = false
 	local testM = myWorld:AddMeteor(1, 1, startSize) -- test start crater radius
 	local startRadius = testM.impact.craterRadius
 	testM:Delete()
