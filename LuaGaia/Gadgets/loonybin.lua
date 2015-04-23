@@ -25,19 +25,29 @@ local spCreateFeature = Spring.CreateFeature
 local spGetGroundHeight = Spring.GetGroundHeight
 local spGetMapOptions = Spring.GetMapOptions
 
+local pi = math.pi
 local twicePi = math.pi * 2
 local mRandom = math.random
 local mRandomSeed = math.randomseed
 local mCos = math.cos
 local mSin = math.sin
+local mAtan2 = math.atan2
 local mSqrt = math.sqrt
 local mCeil = math.ceil
 local mFloor = math.floor
 local mMax = math.max
 local mMin = math.min
+local mAbs = math.abs
 
 local tInsert = table.insert
 local tRemove = table.remove
+
+local gMapSizeX = Game.mapSizeX
+local gMapSizeZ = Game.mapSizeZ
+local centerX = Game.mapSizeX / 2
+local centerZ = Game.mapSizeZ / 2
+local smallestMapDimension = mMin(Game.mapSizeX, Game.mapSizeZ)
+local halfSmallestMapDimension = smallestMapDimension / 2
 
 -- local functions
 
@@ -50,6 +60,20 @@ local function tRemoveRandom(fromTable)
 	return tRemove(fromTable, mRandom(1, #fromTable))
 end
 
+local function AngleAdd(angle1, angle2)
+  return (angle1 + angle2) % twicePi
+end
+
+local function AngleXYXY(x1, y1, x2, y2)
+  local dx = x2 - x1
+  local dy = y2 - y1
+  return mAtan2(dy, dx), dx, dy
+end
+
+local function AngleDist(angle1, angle2)
+  return mAbs((angle1 + pi -  angle2) % twicePi - pi)
+end
+
 local function CirclePos(cx, cy, dist, angle)
   angle = angle or mRandom() * twicePi
   local x = cx + dist * mCos(angle)
@@ -59,7 +83,12 @@ end
 
 local function WithinBox(x, z, box)
 	-- spEcho(box[1], box[2], box[3], box[4], "within?", x, z)
-	return x > box[1] and z > box[2] and x < box[3] and z < box[4]
+	if #box == 2 then
+		local angle, dx, dy = AngleXYXY(centerX, centerZ, x, z)
+		return AngleDist(angle, box[1]) < box[2]
+	elseif #box == 4 then
+		return x > box[1] and z > box[2] and x < box[3] and z < box[4]
+	end
 end
 
 local function FeedWatchDog()
@@ -80,11 +109,17 @@ local thisGameID = 0
 
 local precalcStartBoxes = {
 	-- [number of allyTeams] = {
-		-- {xmin, zmin, xmax, zmax}
+		--    {xmin, zmin, xmax, zmax}
+		-- or {angle, angledistance}
 	-- }
 	[2] = {
 		{0, 0, 0.5, 1},
 		{0.5, 0, 1, 1}
+	},
+	[3] = {
+		{0, twicePi/3},
+		{twicePi/3, twicePi/3},
+		{twicePi/1.5, twicePi/3},
 	},
 	[4] = {
 		{0, 0, 0.5, 0.5},
@@ -92,16 +127,25 @@ local precalcStartBoxes = {
 		{0, 0.5, 0.5, 1},
 		{0.5, 0, 1, 0.5}
 	},
+	[5] = {
+		{0, twicePi/5},
+		{twicePi/5, twicePi/5},
+		{(twicePi/5)*2, twicePi/5},
+		{(twicePi/5)*3, twicePi/5},
+		{(twicePi/5)*4, twicePi/5},
+	},
 }
 for num, boxes in pairs(precalcStartBoxes) do
 	for i, box in pairs(boxes) do
-		for ii, coord in pairs(box) do
-			if i == 1 or i == 2 then
-				coord = coord * Game.mapSizeX
-			else
-				coord = coord * Game.mapSizeZ
+		if #box == 4 then
+			for ii, coord in pairs(box) do
+				if i == 1 or i == 2 then
+					coord = coord * Game.mapSizeX
+				else
+					coord = coord * Game.mapSizeZ
+				end
+				precalcStartBoxes[num][i][ii] = coord
 			end
-			precalcStartBoxes[num][i][ii] = coord
 		end
 	end
 end
@@ -164,7 +208,6 @@ function gadget:Initialize()
 		end
 	end
 	spEcho("randomseed " .. randomseed, "maxDiameter " .. maxDiameter, "showerRamps " .. tostring(showerRamps))
-
 	
 	-- get number of allyTeams
 	local gaiaTeamInfo = { Spring.GetTeamInfo(Spring.GetGaiaTeamID()) }
@@ -178,9 +221,10 @@ function gadget:Initialize()
 		end
 	end
 	local mirror = false
-	if #allyTeams == 2 or #allyTeams == 4 then
+	if #allyTeams >= 2 and #allyTeams <= 5 then
 		mirror = true
 	end
+
 	-- get startboxes
 	local startBoxes = {}
 	for i, allyTeamID in pairs(allyTeams) do
@@ -195,6 +239,7 @@ function gadget:Initialize()
 		spEcho("allyTeamID", allyTeamID, "startbox", startBoxes[allyTeamID][1], startBoxes[allyTeamID][2], startBoxes[allyTeamID][3], startBoxes[allyTeamID][4])
 	end
 	local firstStartBox = startBoxes[allyTeams[1]] or {0, 0, Game.mapSizeX, Game.mapSizeZ}
+	
 	-- get number of teams & sort into allyTeams
 	local teamsByAlly = {}
 	local teamCount = 0
@@ -234,24 +279,36 @@ function gadget:Initialize()
 	testM:Delete()
 	local number = mMax(12, teamCount * 5)
 	if mirror then number = number / #allyTeams end
+	if #allyTeams % 2 ~= 0 then number = number * 2 end -- rotational symmetry is more limited in where metal & geos can occur
 	local try = 0
 	local spots = {}
+	local highestMetal = 0
+	local highestMeteors = {}
 	while #spots < metalTarget and try < 20 do
 		FeedWatchDog()
 		myWorld:Clear()
 		myWorld:MeteorShower(number, minDiameter, maxDiameter)
 		-- add start meteors
 		for n = 1, startMeteorNumber do
-			local x = mRandom(firstStartBox[1]+startRadius, firstStartBox[3]-startRadius)
-			local z = mRandom(firstStartBox[2]+startRadius, firstStartBox[4]-startRadius)
-			myWorld:AddStartMeteor(x, z, startSize)
+			local x, z
+			if #firstStartBox == 2 then
+				local angle = AngleAdd(firstStartBox[1], firstStartBox[2]/2)
+				x, z = CirclePos(centerX, centerZ, halfSmallestMapDimension-(startRadius*2), angle)
+			elseif #firstStartBox == 4 then
+				x = mRandom(firstStartBox[1]+startRadius, firstStartBox[3]-startRadius)
+				z = mRandom(firstStartBox[2]+startRadius, firstStartBox[4]-startRadius)
+			end
+			if x then myWorld:AddStartMeteor(x, z, startSize) end
 		end
 		if mirror then
 			if #allyTeams == 2 then
-				myWorld:MirrorAll(true, true)
+				myWorld:MirrorAll(3)
+			elseif #allyTeams == 3 then
+				myWorld:MirrorAll(-120, -240)
 			elseif #allyTeams == 4 then
-				myWorld:MirrorAll(true, false)
-				myWorld:MirrorAll(false, true)
+				myWorld:MirrorAll(1, 2)
+			elseif #allyTeams == 5 then
+				myWorld:MirrorAll(-72, -144, -216, -288)
 			end
 			myWorld:SetMetalGeothermalRampPostMirrorAll()
 			myWorld:ResetMeteorAges()
@@ -261,11 +318,19 @@ function gadget:Initialize()
 		end
 		spots = myWorld:GetMetalSpots()
 		spEcho("try " .. try, "number " .. number, "spots " .. #spots)
+		if #spots > highestMetal then
+			highestMetal = #spots
+			highestMeteors = myWorld.meteors
+		end
 		number = number + 1
 		try = try + 1
 		maxDiameter = maxDiameter + 5
 	end
 	spEcho("found crater map in " .. try-1 .. " tries")
+	if #spots < metalTarget and highestMetal > #spots then
+		-- use the map with the most metal if target not met
+		myWorld.meteors = highestMeteors
+	end
 	spEcho(#myWorld.meteors .. " craters", maxDiameter-5 .. " maxDiameter", #spots .. " metal spots (target: " .. metalTarget .. ")")
 
 	-- give team start locations to luarules gadget
