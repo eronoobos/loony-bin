@@ -4,8 +4,11 @@
 ### Two Allyteams (180-degree rotational symmetry)
 ![screen2](screen2.png)
 
-### Four Allyteams (two axis reflectional symmetry)
+### Three Allyteams (120-degree rotational symmetry)
+![screen3](screen3.png)
+
+### Four Allyteams (double reflectional symmetry)
 ![screen2](screen4.png)
 
-### Three Allyteams (no symmetry)
-![screen2](screen3.png)
+### Five Allyteams (72-degree rotational symmetry)
+![screen5](screen5.png)
