@@ -1,7 +1,7 @@
-- do rotational symmetry for odd numbers of allyteams:
-	- instead of random position, starts are a random CirclePos, limited to smallest map dimension minus startRadius radius
-	- instead of startboxes, allyteams get two angles
+- for FFA rotational symmetry, add a big crater in the center w/ lots of metal & a geo?
 - add second set of precalc start boxes that's more toward the corners, to prevent opposite allyteam starts from being right next to each other
-- clean up mirroring code in loony.lua
-- fix meteor shower min and max diameter
+- remove shitty binding Meteor.mirrorMeteor and World.mirror code. only useful in thatsamore, and there not much.
+- fix meteor shower min diameter (or remove)
 - find a way to get a new random seed every game?
+	- generate the map at gadget:GameID() and use gameID string to make a randomseed
+	- give each team a unit with infinite LOS, then remove it once the map is generated

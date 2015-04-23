@@ -317,7 +317,7 @@ function gadget:Initialize()
 			myWorld:ResetMeteorAges()
 		end
 		spots = myWorld:GetMetalSpots()
-		spEcho("try " .. try, "number " .. number, "spots " .. #spots)
+		spEcho("try " .. try, "number " .. number, "maxDiameter " .. maxDiameter, "spots " .. #spots)
 		if #spots > highestMetal then
 			highestMetal = #spots
 			highestMeteors = myWorld.meteors
