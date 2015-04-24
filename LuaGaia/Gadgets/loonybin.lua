@@ -106,6 +106,7 @@ local myWorld
 local heightRenderComplete, metalRenderComplete
 local metalSpots = {}
 local thisGameID = 0
+local groundDecalWidgetLoaded
 
 local precalcStartBoxes = {
 	-- [number of allyTeams] = {
@@ -168,23 +169,11 @@ for i, d in pairs(blastRayDecals) do
 	blastRayDecals[i].widthRatio = d.width / d.innerWidth
 end
 
-function gadget:GameID(gameID)
-	thisGameID = gameID
-	local rseed = 0
-	local rstr = tostring(gameID)
-	for i = 1, string.len(rstr) do
-		local byte = string.byte(string.sub(rstr, i))
-		rseed = rseed + byte
-	end
-	spEcho("gameID", gameID, "rseed", rseed)
-end
-
-
-function gadget:Initialize()
-	spEcho("initializing loony bin gadget...")
+local function GenerateMap(randomseed)
+	spEcho('generating loony bin map...')
 
 	-- default config values
-	local randomseed = 1
+	randomseed = randomseed or 1
 	local minDiameter, maxDiameter = 5, 300
 	local metersPerElmo = 8
 	local gravity = (Game.gravity / 130) * 9.8
@@ -196,7 +185,9 @@ function gadget:Initialize()
 	local options = spGetMapOptions()
 	if options ~= nil then
 		if options.randomseed ~= nil then
-			randomseed = tonumber(options.randomseed)
+			if tonumber(options.randomseed) ~= 0 then
+				randomseed = tonumber(options.randomseed)
+			end
 		end
 		if options.size == "large" then
 			minDiameter, maxDiameter = 25, 800
@@ -395,17 +386,18 @@ function gadget:Initialize()
 	end
 
 	Spring.SendLuaRulesMsg('HangTimeoutManager reset')
+
+	spEcho('loony bin map generated')
 end
 
-
-function gadget:RecvLuaMsg(msg, playerID)
-	if msg ~= "Ground Decal Widget Loaded" then return end
+local function SendGroundDecals()
+	if not groundDecalWidgetLoaded then return end
 	SendToUnsynced('ClearGroundDecals')
 	-- add metal spot decals
 	for i, spot in pairs(metalSpots) do
 		SendToUnsynced('GroundDecal', "maps/mex.png", spot.x, spot.z, myWorld.metalSpotRadius*6, nil, nil, 0.5, 0, 0, 0.25)
 	end
-	-- add geotermal decals
+	-- add geothermal decals
 	for i, m in pairs(myWorld.meteors) do
 		local width = mSqrt(((myWorld.geothermalRadius * 2)^2) * 2) * 2
 		if m.geothermal then
@@ -430,6 +422,49 @@ function gadget:RecvLuaMsg(msg, playerID)
 			if n == 3 then break end
 		end
 	end
+end
+
+function gadget:GameID(gameID)
+	thisGameID = gameID
+	local rseed = 0
+	local rstr = tostring(gameID)
+	for i = 1, string.len(rstr) do
+		local byte = string.byte(string.sub(rstr, i))
+		rseed = rseed + byte
+	end
+	spEcho("random seed: " .. rseed)
+	local crazyeyes = {}
+	for i, teamID in pairs(Spring.GetTeamList()) do
+		if teamID ~= Spring.GetGaiaTeamID() then
+			for x = 0, gMapSizeX, centerX do
+				for z = 0, gMapSizeZ, centerZ do
+					local unitID = Spring.CreateUnit("crazyeye", x, 1000, z, 0, teamID)
+					tInsert(crazyeyes, unitID)
+				end
+			end
+		end
+	end
+	GenerateMap(rseed)
+	for i, unitID in pairs(crazyeyes) do
+		Spring.DestroyUnit(unitID, false, true)
+	end
+end
+
+function gadget:GameFrame(frame)
+	-- have to send them late, otherwise the height map hasn't yet updated
+	if frame == 100 then SendGroundDecals() end
+end
+
+
+function gadget:Initialize()
+	
+end
+
+
+function gadget:RecvLuaMsg(msg, playerID)
+	if msg ~= "Ground Decal Widget Loaded" then return end
+	groundDecalWidgetLoaded = true
+	SendGroundDecals() -- so that someone new joining the game will get decals
 end
 
 -- Loony callins

@@ -112,3 +112,9 @@ end
 function widget:DrawWorldPreUnit()
 	gl.CallList(displayList)
 end
+
+function widget:GameFrame(frame)
+	if frame % 300 == 0 then
+		displayList = gl.CreateList(DrawDecals)
+	end
+end

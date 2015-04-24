@@ -53,12 +53,12 @@ local options = {
 	{
 		key  = "randomseed",
 		name = "Seed",
-		desc = "Seed for initializing the random number generator. The same seed with the same parameters will generate the same map.",
+		desc = "Seed for initializing the random number generator. The same seed with the same parameters will generate the same map. 0 gives a new seed every game.",
 		type = "number",
-		def  = 1,
+		def  = 0,
 		section = 'Craters',
-		min = 1,
-		max = 99,
+		min = 0,
+		max = 999,
 		step = 1,
 	},
 	{
