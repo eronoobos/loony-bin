@@ -81,6 +81,10 @@ local function CirclePos(cx, cy, dist, angle)
   return x, y
 end
 
+local function RandomVariance(variance)
+  return (1-variance) + (mRandom() * variance * 2)
+end
+
 local function WithinBox(x, z, box)
 	-- spEcho(box[1], box[2], box[3], box[4], "within?", x, z)
 	if #box == 2 then
@@ -270,7 +274,7 @@ local function GenerateMap(randomseed)
 
 	local metalTarget = (teamCount * 6) + (#allyTeams * 3)
 	local geothermalTarget = teamCount
-	local metalSpotMaxPerCrater = 3 -- anything higher than this leads to funky assymetry of metal spots
+	local metalSpotMaxPerCrater = #allyTeams
 	spEcho("metalTarget " .. metalTarget, "geothermalTarget " .. geothermalTarget, "metalSpotMaxPerCrater " .. metalSpotMaxPerCrater)
 	local unMirroredMetalTarget = metalTarget
 	if mirror then unMirroredMetalTarget = unMirroredMetalTarget / #allyTeams end
@@ -281,14 +285,15 @@ local function GenerateMap(randomseed)
 	myWorld.metalSpotMaxPerCrater = metalSpotMaxPerCrater
 	myWorld.generateBlastNoise = false
 	myWorld.underlyingPerlin = true
+	myWorld.generateAgeNoise = false
 	local testM = myWorld:AddMeteor(1, 1, startSize) -- test start crater radius
 	local startRadius = testM.impact.craterRadius
 	local fromEdges = startRadius * 1.25
 	testM:Delete()
 	local number = 12
-	-- local number = mMax(17, teamCount * 8)
-	-- if mirror then number = number / #allyTeams end
-	-- if #startBoxes[1] == 2 then number = number * 2 end -- rotational symmetry is more limited in where metal & geos can occur
+	if number * #allyTeams > 48 then
+		number = 10
+	end
 	local try = 0
 	local spots = {}
 	local highestMetal = 0
@@ -297,6 +302,15 @@ local function GenerateMap(randomseed)
 		FeedWatchDog()
 		myWorld:Clear()
 		myWorld:MeteorShower(number, minDiameter, maxDiameter)
+		-- add giant meteor on radial maps
+		if #firstStartBox == 2 then
+			-- sx, sz, diameterImpactor, velocityImpactKm, angleImpact, densityImpactor, age, metal, geothermal, seedSeed, ramps, mirrorMeteor, noMirror
+			local m = myWorld:AddMeteor(centerX+RandomVariance(5), centerZ+RandomVariance(5), startSize*3, nil, nil, nil, nil, #allyTeams, false, nil, nil, nil, true)
+			if myWorld.showerRamps then m:Add180Ramps() end
+  			m.metalGeothermalRampSet = true
+  			m.dontMirror = true
+  			m:Collide()
+		end
 		-- add start meteors
 		for n = 1, startMeteorNumber do
 			local x, z
@@ -342,6 +356,7 @@ local function GenerateMap(randomseed)
 	if #spots < metalTarget and highestMetal > #spots then
 		-- use the map with the most metal if target not met
 		myWorld.meteors = highestMeteors
+		spots = myWorld:GetMetalSpots()
 	end
 	spEcho(#myWorld.meteors .. " craters", maxDiameter-5 .. " maxDiameter", #spots .. " metal spots (target: " .. metalTarget .. ")")
 
@@ -428,7 +443,7 @@ local function SendGroundDecals()
 	local bri = 1
 	for i = #myWorld.meteors, 1, -1 do
 		local m = myWorld.meteors[i]
-		if m.impact.craterRadius < 50 then
+		if m.impact.craterRadius < myWorld.noMirrorRadius then
 			local d = blastRayDecals[bri]
 			local filename = d.image
 			local width = m.impact.craterRadius * 2 * d.widthRatio
@@ -441,16 +456,16 @@ local function SendGroundDecals()
 			if n == 3 then break end
 		end
 	end
-	spEcho(n .. ' blast ray decals')
 end
 
 function gadget:GameID(gameID)
 	thisGameID = gameID
+	spEcho(string.len(gameID))
 	local rseed = 0
-	local rstr = tostring(gameID)
-	for i = 1, string.len(rstr) do
-		local byte = string.byte(string.sub(rstr, i))
-		rseed = rseed + byte
+	local unpacked = VFS.UnpackU32(gameID, 1, string.len(gameID))
+	for i, part in ipairs(unpacked) do
+		local mult = 256 ^ (#unpacked-i)
+		rseed = rseed + (part*mult)
 	end
 	spEcho("random seed: " .. rseed)
 	crazyeyes = {}

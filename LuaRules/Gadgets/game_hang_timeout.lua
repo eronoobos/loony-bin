@@ -11,7 +11,7 @@ function gadget:GetInfo()
 	}
 end
 
-local initTimeout = 300000 -- set timeout to this on initialize
+local initTimeout = 999999 -- set timeout to this on initialize
 
 local tInsert = table.insert
 local spEcho = Spring.Echo
