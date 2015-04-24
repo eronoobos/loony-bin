@@ -24,6 +24,10 @@ local function splitIntoWords(s)
   return words
 end
 
+----- SPRING SYNCED ------------------------------------------
+if (gadgetHandler:IsSyncedCode()) then
+-------------------------------------------------------
+
 local startPositions = {}
 local origGetTeamStartPosition
 
@@ -56,4 +60,7 @@ end
 
 function gadget:Shutdown()
 	Spring.GetTeamStartPosition = origGetTeamStartPosition
+end
+
+-------------------------------------------------------------
 end

@@ -170,16 +170,18 @@ end
 
 function gadget:GameID(gameID)
 	thisGameID = gameID
+	local rseed = 0
+	local rstr = tostring(gameID)
+	for i = 1, string.len(rstr) do
+		local byte = string.byte(string.sub(rstr, i))
+		rseed = rseed + byte
+	end
+	spEcho("gameID", gameID, "rseed", rseed)
 end
 
 
 function gadget:Initialize()
 	spEcho("initializing loony bin gadget...")
-
-	if not Spring.ClearWatchDogTimer then
-		pcall(Spring.SetConfigInt,"HangTimeout",123456789,1)
-		pcall(Spring.SetConfigInt,"HangTimeout",123456789,true)
-	end
 
 	-- default config values
 	local randomseed = 1
@@ -391,6 +393,8 @@ function gadget:Initialize()
 			local flagID = spCreateFeature(fDef.name, fDef.x, spGetGroundHeight(fDef.x,fDef.z)+5, fDef.z, fDef.rot)
 		end
 	end
+
+	Spring.SendLuaRulesMsg('HangTimeoutManager reset')
 end
 
 
