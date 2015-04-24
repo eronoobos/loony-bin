@@ -107,6 +107,7 @@ local heightRenderComplete, metalRenderComplete
 local metalSpots = {}
 local thisGameID = 0
 local groundDecalWidgetLoaded
+local crazyeyes = {}
 
 local precalcStartBoxes = {
 	-- [number of allyTeams] = {
@@ -117,24 +118,29 @@ local precalcStartBoxes = {
 		{0, 0, 0.5, 1},
 		{0.5, 0, 1, 1}
 	},
-	[3] = {
-		{0, twicePi/3},
-		{twicePi/3, twicePi/3},
-		{twicePi/1.5, twicePi/3},
+	-- starts further in the corner so that they don't end up right next to each other
+	[-2] = {
+		{0, 0, 0.25, 1},
+		{0.75, 0, 1, 1}
 	},
+	[3] = {}, -- will be replaced by radial angle start box
 	[4] = {
 		{0, 0, 0.5, 0.5},
 		{0.5, 0.5, 1, 1},
 		{0, 0.5, 0.5, 1},
 		{0.5, 0, 1, 0.5}
 	},
-	[5] = {
-		{0, twicePi/5},
-		{twicePi/5, twicePi/5},
-		{(twicePi/5)*2, twicePi/5},
-		{(twicePi/5)*3, twicePi/5},
-		{(twicePi/5)*4, twicePi/5},
+	-- starts further in the corner so that they don't end up right next to each other
+	[-4] = {
+		{0, 0, 0.25, 0.25},
+		{0.75, 0.75, 1, 1},
+		{0, 0.75, 0.25, 1},
+		{0.75, 0, 1, 0.25}
 	},
+	[5] = {}, -- will be replaced by radial angle start box
+	[6] = {}, -- will be replaced by radial angle start box
+	[7] = {}, -- will be replaced by radial angle start box
+	[8] = {}, -- will be replaced by radial angle start box
 }
 for num, boxes in pairs(precalcStartBoxes) do
 	for i, box in pairs(boxes) do
@@ -148,6 +154,15 @@ for num, boxes in pairs(precalcStartBoxes) do
 				precalcStartBoxes[num][i][ii] = coord
 			end
 		end
+	end
+	if #boxes == 0 then
+		local newBoxes = {}
+		local inc = twicePi/num
+		for a = 1, num do
+			local box = { inc*(a-1), inc }
+			newBoxes[a] = box
+		end
+		precalcStartBoxes[num] = newBoxes
 	end
 end
 
@@ -174,7 +189,7 @@ local function GenerateMap(randomseed)
 
 	-- default config values
 	randomseed = randomseed or 1
-	local minDiameter, maxDiameter = 5, 300
+	local minDiameter, maxDiameter = 5, 400
 	local metersPerElmo = 8
 	local gravity = (Game.gravity / 130) * 9.8
 	local density = (Game.mapHardness / 100) * 2500
@@ -184,13 +199,8 @@ local function GenerateMap(randomseed)
 	-- get map options
 	local options = spGetMapOptions()
 	if options ~= nil then
-		if options.randomseed ~= nil then
-			if tonumber(options.randomseed) ~= 0 then
-				randomseed = tonumber(options.randomseed)
-			end
-		end
 		if options.size == "large" then
-			minDiameter, maxDiameter = 25, 800
+			minDiameter, maxDiameter = 25, 700
 		elseif options.size == "medium" then
 			minDiameter, maxDiameter = 5, 400
 		elseif options.size == "small" then
@@ -214,7 +224,7 @@ local function GenerateMap(randomseed)
 		end
 	end
 	local mirror = false
-	if #allyTeams >= 2 and #allyTeams <= 5 then
+	if #allyTeams >= 2 and #allyTeams <= 8 then
 		mirror = true
 	end
 
@@ -232,7 +242,10 @@ local function GenerateMap(randomseed)
 		spEcho("allyTeamID", allyTeamID, "startbox", startBoxes[allyTeamID][1], startBoxes[allyTeamID][2], startBoxes[allyTeamID][3], startBoxes[allyTeamID][4])
 	end
 	local firstStartBox = startBoxes[allyTeams[1]] or {0, 0, Game.mapSizeX, Game.mapSizeZ}
-	
+	if precalcStartBoxes[-#allyTeams] then
+		firstStartBox = precalcStartBoxes[-#allyTeams][1]
+	end
+
 	-- get number of teams & sort into allyTeams
 	local teamsByAlly = {}
 	local teamCount = 0
@@ -267,12 +280,15 @@ local function GenerateMap(randomseed)
 	myWorld = Loony.World(Game.mapX, Game.mapY, metersPerElmo, gravity, density, "none", metalTarget, geothermalTarget, showerRamps)
 	myWorld.metalSpotMaxPerCrater = metalSpotMaxPerCrater
 	myWorld.generateBlastNoise = false
+	myWorld.underlyingPerlin = true
 	local testM = myWorld:AddMeteor(1, 1, startSize) -- test start crater radius
 	local startRadius = testM.impact.craterRadius
+	local fromEdges = startRadius * 1.25
 	testM:Delete()
-	local number = mMax(12, teamCount * 5)
-	if mirror then number = number / #allyTeams end
-	if #allyTeams % 2 ~= 0 then number = number * 2 end -- rotational symmetry is more limited in where metal & geos can occur
+	local number = 12
+	-- local number = mMax(17, teamCount * 8)
+	-- if mirror then number = number / #allyTeams end
+	-- if #startBoxes[1] == 2 then number = number * 2 end -- rotational symmetry is more limited in where metal & geos can occur
 	local try = 0
 	local spots = {}
 	local highestMetal = 0
@@ -286,22 +302,25 @@ local function GenerateMap(randomseed)
 			local x, z
 			if #firstStartBox == 2 then
 				local angle = AngleAdd(firstStartBox[1], firstStartBox[2]/2)
-				x, z = CirclePos(centerX, centerZ, halfSmallestMapDimension-(startRadius*2), angle)
+				x, z = CirclePos(centerX, centerZ, halfSmallestMapDimension-(fromEdges*2), angle)
 			elseif #firstStartBox == 4 then
-				x = mRandom(firstStartBox[1]+startRadius, firstStartBox[3]-startRadius)
-				z = mRandom(firstStartBox[2]+startRadius, firstStartBox[4]-startRadius)
+				x = mRandom(firstStartBox[1]+fromEdges, firstStartBox[3]-fromEdges)
+				z = mRandom(firstStartBox[2]+fromEdges, firstStartBox[4]-fromEdges)
 			end
 			if x then myWorld:AddStartMeteor(x, z, startSize) end
 		end
 		if mirror then
 			if #allyTeams == 2 then
 				myWorld:MirrorAll(3)
-			elseif #allyTeams == 3 then
-				myWorld:MirrorAll(-120, -240)
 			elseif #allyTeams == 4 then
-				myWorld:MirrorAll(1, 2)
-			elseif #allyTeams == 5 then
-				myWorld:MirrorAll(-72, -144, -216, -288)
+				myWorld:MirrorAll(1, 2, 3)
+			elseif #allyTeams == 3 or (#allyTeams >= 5 and #allyTeams <= 8) then
+				local mirrorIndices = {}
+				local inc = 360/#allyTeams
+				for a = 1, #allyTeams-1 do
+					tInsert(mirrorIndices, -inc*a)
+				end
+				myWorld:MirrorAll(mirrorIndices)
 			end
 			myWorld:SetMetalGeothermalRampPostMirrorAll()
 			myWorld:ResetMeteorAges()
@@ -422,6 +441,7 @@ local function SendGroundDecals()
 			if n == 3 then break end
 		end
 	end
+	spEcho(n .. ' blast ray decals')
 end
 
 function gadget:GameID(gameID)
@@ -433,7 +453,7 @@ function gadget:GameID(gameID)
 		rseed = rseed + byte
 	end
 	spEcho("random seed: " .. rseed)
-	local crazyeyes = {}
+	crazyeyes = {}
 	for i, teamID in pairs(Spring.GetTeamList()) do
 		if teamID ~= Spring.GetGaiaTeamID() then
 			for x = 0, gMapSizeX, centerX do
@@ -445,6 +465,10 @@ function gadget:GameID(gameID)
 		end
 	end
 	GenerateMap(rseed)
+end
+
+function gadget:GameStart()
+	-- if they're destroyed before game start, the team dies
 	for i, unitID in pairs(crazyeyes) do
 		Spring.DestroyUnit(unitID, false, true)
 	end
@@ -452,7 +476,9 @@ end
 
 function gadget:GameFrame(frame)
 	-- have to send them late, otherwise the height map hasn't yet updated
-	if frame == 100 then SendGroundDecals() end
+	if frame == 100 then
+		SendGroundDecals()
+	end
 end
 
 

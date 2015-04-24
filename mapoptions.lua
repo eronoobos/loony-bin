@@ -51,17 +51,6 @@ local options = {
 --// Options
 	--// Craters
 	{
-		key  = "randomseed",
-		name = "Seed",
-		desc = "Seed for initializing the random number generator. The same seed with the same parameters will generate the same map. 0 gives a new seed every game.",
-		type = "number",
-		def  = 0,
-		section = 'Craters',
-		min = 0,
-		max = 999,
-		step = 1,
-	},
-	{
 		key  = "size",
 		name = "Size",
 		desc = "Size of craters",
