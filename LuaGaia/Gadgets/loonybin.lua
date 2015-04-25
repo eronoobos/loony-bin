@@ -306,7 +306,7 @@ local function GenerateMap(randomseed)
 		if #firstStartBox == 2 then
 			-- sx, sz, diameterImpactor, velocityImpactKm, angleImpact, densityImpactor, age, metal, geothermal, seedSeed, ramps, mirrorMeteor, noMirror
 			local m = myWorld:AddMeteor(centerX+RandomVariance(5), centerZ+RandomVariance(5), startSize*3, nil, nil, nil, nil, #allyTeams, false, nil, nil, nil, true)
-			if myWorld.showerRamps then m:Add180Ramps() end
+			if myWorld.showerRamps then m:AddSomeRamps(3) end
   			m.metalGeothermalRampSet = true
   			m.dontMirror = true
   			m:Collide()
@@ -462,10 +462,11 @@ function gadget:GameID(gameID)
 	thisGameID = gameID
 	spEcho(string.len(gameID))
 	local rseed = 0
-	local unpacked = VFS.UnpackU32(gameID, 1, string.len(gameID))
+	local unpacked = VFS.UnpackU8(gameID, 1, string.len(gameID))
 	for i, part in ipairs(unpacked) do
-		local mult = 256 ^ (#unpacked-i)
-		rseed = rseed + (part*mult)
+		-- local mult = 256 ^ (#unpacked-i)
+		-- rseed = rseed + (part*mult)
+		rseed = rseed + part
 	end
 	spEcho("random seed: " .. rseed)
 	crazyeyes = {}
