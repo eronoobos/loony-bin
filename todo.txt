@@ -1,6 +1,3 @@
-- add a map option for no symmetry
-- make sure in-game start positions work
-- make sure spectators don't interfere with start position magic
 - remove shitty binding Meteor.mirrorMeteor and World.mirror code. only useful in thatsamore, and there not much.
 - fix meteor shower min diameter (or remove)
 - possible to give a progress bar by sending messages back and forth (gadget does new render frame when it receives a message from a widget that the last progress report was received by someone). but then the game starts before the map is done rendering... it's a mess
