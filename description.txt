@@ -1,0 +1,1 @@
+Randomized crater map. Map generator tries to create a fair, symmetric map for any number of allies & teams, so long as there are 8 or fewer allyteams. Map takes anywhere from 45 seconds to a few minutes to generate. Will respect start positions selected in-game, but all static start positions are placeholders, replaced after map generation.
