@@ -71,7 +71,7 @@ local function AngleXYXY(x1, y1, x2, y2)
 end
 
 local function AngleDist(angle1, angle2)
-  return mAbs((angle1 + pi -  angle2) % twicePi - pi)
+  return ((angle1 + pi - angle2) % twicePi) - pi
 end
 
 local function CirclePos(cx, cy, dist, angle)
@@ -89,10 +89,17 @@ local function WithinBox(x, z, box)
 	-- spEcho(box[1], box[2], box[3], box[4], "within?", x, z)
 	if #box == 2 then
 		local angle, dx, dy = AngleXYXY(centerX, centerZ, x, z)
-		return AngleDist(angle, box[1]) < box[2]
+		local adist = AngleDist(angle, box[1])
+		return (adist < box[2] and adist > 0)
 	elseif #box == 4 then
 		return x > box[1] and z > box[2] and x < box[3] and z < box[4]
 	end
+end
+
+local function DistanceSq(x1, y1, x2, y2)
+  local dx = mAbs(x2 - x1)
+  local dy = mAbs(y2 - y1)
+  return (dx*dx) + (dy*dy)
 end
 
 local function FeedWatchDog()
@@ -124,8 +131,8 @@ local precalcStartBoxes = {
 	},
 	-- starts further in the corner so that they don't end up right next to each other
 	[-2] = {
-		{0, 0, 0.25, 1},
-		{0.75, 0, 1, 1}
+		{0, 0, 0.33, 1},
+		{0.67, 0, 1, 1}
 	},
 	[3] = {}, -- will be replaced by radial angle start box
 	[4] = {
@@ -136,10 +143,10 @@ local precalcStartBoxes = {
 	},
 	-- starts further in the corner so that they don't end up right next to each other
 	[-4] = {
-		{0, 0, 0.25, 0.25},
-		{0.75, 0.75, 1, 1},
-		{0, 0.75, 0.25, 1},
-		{0.75, 0, 1, 0.25}
+		{0, 0, 0.33, 0.33},
+		{0.67, 0.67, 1, 1},
+		{0, 0.67, 0.33, 1},
+		{0.67, 0, 1, 0.33}
 	},
 	[5] = {}, -- will be replaced by radial angle start box
 	[6] = {}, -- will be replaced by radial angle start box
@@ -162,8 +169,9 @@ for num, boxes in pairs(precalcStartBoxes) do
 	if #boxes == 0 then
 		local newBoxes = {}
 		local inc = twicePi/num
+		local off = mRandom() * twicePi
 		for a = 1, num do
-			local box = { inc*(a-1), inc }
+			local box = { off+(inc*(a-1)), inc }
 			newBoxes[a] = box
 		end
 		precalcStartBoxes[num] = newBoxes
@@ -189,7 +197,7 @@ for i, d in pairs(blastRayDecals) do
 end
 
 local function GenerateMap(randomseed)
-	spEcho('generating loony bin map...')
+	spEcho('generating loony bin map with randomseed ' .. randomseed)
 
 	-- default config values
 	randomseed = randomseed or 1
@@ -198,7 +206,7 @@ local function GenerateMap(randomseed)
 	local gravity = (Game.gravity / 130) * 9.8
 	local density = (Game.mapHardness / 100) * 2500
 	local showerRamps = false
-	local startSize = 150
+	local startRadius = 380
 
 	-- get map options
 	local options = spGetMapOptions()
@@ -214,8 +222,10 @@ local function GenerateMap(randomseed)
 			showerRamps = tonumber(options.ramps) == 1
 		end
 	end
-	spEcho("randomseed " .. randomseed, "maxDiameter " .. maxDiameter, "showerRamps " .. tostring(showerRamps))
+	spEcho("maxDiameter " .. maxDiameter, "showerRamps " .. tostring(showerRamps))
 	
+	local fromEdges = startRadius * 1.25
+
 	-- get number of allyTeams
 	local gaiaTeamInfo = { Spring.GetTeamInfo(Spring.GetGaiaTeamID()) }
 	local gaiaAllyTeamID = gaiaTeamInfo[6]
@@ -248,6 +258,27 @@ local function GenerateMap(randomseed)
 	local firstStartBox = startBoxes[allyTeams[1]] or {0, 0, Game.mapSizeX, Game.mapSizeZ}
 	if precalcStartBoxes[-#allyTeams] then
 		firstStartBox = precalcStartBoxes[-#allyTeams][1]
+		firstStartBox[1] = firstStartBox[1] + fromEdges
+		firstStartBox[2] = firstStartBox[2] + fromEdges
+		firstStartBox[3] = firstStartBox[3] - fromEdges
+		firstStartBox[4] = firstStartBox[4] - fromEdges
+	end
+	local startsWithinBox
+	if #firstStartBox == 4 then
+		local f = firstStartBox
+		local dx = f[3] - f[1]
+		local dz = f[4] - f[2]
+		startsWithinBox = {
+			{x = f[1], z = f[2]},
+			{x = f[3], z = f[2]},
+			{x = f[1], z = f[4]},
+			{x = f[3], z = f[4]},
+			{x = f[1]+(dx/2), z = f[2]+(dz/2)},
+			{x = f[1], z = f[2]+(dz/2)},
+			{x = f[3], z = f[2]+(dz/2)},
+			{x = f[1]+(dx/2), z = f[2]},
+			{x = f[1]+(dx/2), z = f[4]},
+		}
 	end
 
 	-- get number of teams & sort into allyTeams
@@ -286,42 +317,81 @@ local function GenerateMap(randomseed)
 	myWorld.generateBlastNoise = false
 	myWorld.underlyingPerlin = true
 	myWorld.generateAgeNoise = false
-	local testM = myWorld:AddMeteor(1, 1, startSize) -- test start crater radius
-	local startRadius = testM.impact.craterRadius
-	local fromEdges = startRadius * 1.25
+	local testM = myWorld:AddMeteor(1, 1) -- test start crater diameter
+	testM:Resize(startRadius)
+	local startDiameterImpactor = testM.diameterImpactor
 	testM:Delete()
+	spEcho("startRadius " .. startRadius, "startDiameterImpactor " .. startDiameterImpactor)
 	local number = 12
 	if number * #allyTeams > 48 then
 		number = 10
 	end
-	local try = 0
+	local try = 1
 	local spots = {}
 	local highestMetal = 0
 	local highestMeteors = {}
+	local emptyCenter = (smallestMapDimension / 6)
+	local emptyCenterSq = emptyCenter ^ 2
+	local largestDimensionSq = mMax(gMapSizeX, gMapSizeZ) ^ 2
 	while #spots < metalTarget and try < 20 do
 		FeedWatchDog()
 		myWorld:Clear()
 		myWorld:MeteorShower(number, minDiameter, maxDiameter)
-		-- add giant meteor on radial maps
-		if #firstStartBox == 2 then
+		-- add a big crater if the center is empty
+		local lowestDistSq = largestDimensionSq
+		for i, m in pairs(myWorld.meteors) do
+			if m.impact.craterRadius >= myWorld.metalSpotMinRadius then
+				local dx = mAbs(m.sx - centerX) - m.impact.craterRadius
+				local dz = mAbs(m.sz - centerZ) - m.impact.craterRadius
+				local distSq = (dx*dx) + (dz*dz)
+				if distSq < lowestDistSq then
+					lowestDistSq = distSq
+				end
+			end
+		end
+		if lowestDistSq > emptyCenterSq then
 			-- sx, sz, diameterImpactor, velocityImpactKm, angleImpact, densityImpactor, age, metal, geothermal, seedSeed, ramps, mirrorMeteor, noMirror
-			local m = myWorld:AddMeteor(centerX+RandomVariance(5), centerZ+RandomVariance(5), startSize*3, nil, nil, nil, nil, #allyTeams, false, nil, nil, nil, true)
+			local m = myWorld:AddMeteor(centerX+RandomVariance(5), centerZ+RandomVariance(5), startDiameterImpactor*2, nil, nil, nil, nil, #allyTeams, false, nil, nil, nil, true)
 			if myWorld.showerRamps then m:AddSomeRamps(3) end
   			m.metalGeothermalRampSet = true
   			m.dontMirror = true
-  			m:Collide()
+  			m:Resize( mSqrt(lowestDistSq) * 0.85 )
+  			spEcho("big central crater", m.impact.craterRadius)
 		end
 		-- add start meteors
+		local nn = 1
 		for n = 1, startMeteorNumber do
 			local x, z
 			if #firstStartBox == 2 then
-				local angle = AngleAdd(firstStartBox[1], firstStartBox[2]/2)
-				x, z = CirclePos(centerX, centerZ, halfSmallestMapDimension-(fromEdges*2), angle)
+				local angle, dist
+				if startMeteorNumber == 1 then
+					angle = AngleAdd(firstStartBox[1], firstStartBox[2]/2)
+					dist = mRandom(emptyCenter, halfSmallestMapDimension-fromEdges)
+				else
+					if nn == 1 then
+						angle = AngleAdd(firstStartBox[1], firstStartBox[2]/3)
+					elseif nn == 2 then
+						angle = AngleAdd(firstStartBox[1], firstStartBox[2]/1.5)
+					elseif nn == 3 then
+						angle = AngleAdd(firstStartBox[1], firstStartBox[2]/2)
+					end
+					local dd = (halfSmallestMapDimension-fromEdges) - emptyCenter
+					local inc = dd / (startMeteorNumber+1)
+					dist = emptyCenter + (inc*n)
+					nn = nn + 1
+					if nn > 3 then nn = 1 end
+				end
+				x, z = CirclePos(centerX, centerZ, dist, angle)
 			elseif #firstStartBox == 4 then
-				x = mRandom(firstStartBox[1]+fromEdges, firstStartBox[3]-fromEdges)
-				z = mRandom(firstStartBox[2]+fromEdges, firstStartBox[4]-fromEdges)
+				if startMeteorNumber == 1 or startMeteorNumber > 9 then
+					x = mRandom(firstStartBox[1], firstStartBox[3])
+					z = mRandom(firstStartBox[2], firstStartBox[4])
+				else
+					x = startsWithinBox[n].x
+					z = startsWithinBox[n].z
+				end
 			end
-			if x then myWorld:AddStartMeteor(x, z, startSize) end
+			if x then myWorld:AddStartMeteor(x, z, startDiameterImpactor) end
 		end
 		if mirror then
 			if #allyTeams == 2 then
@@ -358,7 +428,7 @@ local function GenerateMap(randomseed)
 		myWorld.meteors = highestMeteors
 		spots = myWorld:GetMetalSpots()
 	end
-	spEcho(#myWorld.meteors .. " craters", maxDiameter-5 .. " maxDiameter", #spots .. " metal spots (target: " .. metalTarget .. ")")
+	spEcho(#myWorld.meteors .. " craters", #spots .. " metal spots (target: " .. metalTarget .. ")")
 
 	-- give team start locations to luarules gadget
 	for i, m in pairs(myWorld.meteors) do
@@ -460,7 +530,6 @@ end
 
 function gadget:GameID(gameID)
 	thisGameID = gameID
-	spEcho(string.len(gameID))
 	local rseed = 0
 	local unpacked = VFS.UnpackU8(gameID, 1, string.len(gameID))
 	for i, part in ipairs(unpacked) do
@@ -468,7 +537,7 @@ function gadget:GameID(gameID)
 		-- rseed = rseed + (part*mult)
 		rseed = rseed + part
 	end
-	spEcho("random seed: " .. rseed)
+	spEcho("got randomseed from gameID: " .. rseed)
 	crazyeyes = {}
 	for i, teamID in pairs(Spring.GetTeamList()) do
 		if teamID ~= Spring.GetGaiaTeamID() then
