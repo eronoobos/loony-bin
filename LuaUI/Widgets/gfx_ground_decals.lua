@@ -94,7 +94,7 @@ local function ReceiveGroundDecal(filename, x, z, width, height, rotation, r, g,
 	-- spEcho("got ground decal", filename, x, z, width, height)
 end
 
-local function ClearGroundDecals()
+local function ReceiveClearGroundDecals()
 	decals = {}
 	displayList = 0
 end
@@ -103,7 +103,7 @@ end
 
 function widget:Initialize()
 	widgetHandler:RegisterGlobal("ReceiveGroundDecal", ReceiveGroundDecal)
-	widgetHandler:RegisterGlobal("ClearGroundDecals", ClearGroundDecals)
+	widgetHandler:RegisterGlobal("ReceiveClearGroundDecals", ReceiveClearGroundDecals)
 	local msg = "Ground Decal Widget Loaded"
 	Spring.SendLuaGaiaMsg(msg)
 	Spring.SendLuaRulesMsg(msg)

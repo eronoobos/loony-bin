@@ -452,13 +452,15 @@ local function GenerateMap(randomseed)
 	end
 
 	-- render crater map
+	spEcho("rendering height & metal maps...")
+	FeedWatchDog()
 	myWorld:RenderHeight()
 	myWorld:RenderMetal()
 	-- i have to change the height map here and not through GameFrame so that it happens before pathfinding & team LOS initialization
 	local i = 1
 	while not heightRenderComplete or not metalRenderComplete do
-		FeedWatchDog()
 		myWorld:RendererFrame(i)
+		i = i + 1
 	end
 
 	local featureslist = myWorld:GetFeaturelist() -- get geovents
@@ -555,6 +557,7 @@ function gadget:GameID(gameID)
 		end
 	end
 	GenerateMap(rseed)
+	SendToUnsynced('StopMapGenRep')
 end
 
 function gadget:GameStart()
@@ -566,7 +569,7 @@ end
 
 function gadget:GameFrame(frame)
 	-- have to send them late, otherwise the height map hasn't yet updated
-	if frame == 100 then
+	if frame == 60 then
 		SendGroundDecals()
 	end
 end
@@ -584,6 +587,10 @@ function gadget:RecvLuaMsg(msg, playerID)
 end
 
 -- Loony callins
+
+function Loony.FrameRenderer(renderer)
+	FeedWatchDog()
+end
 
 function Loony.CompleteRenderer(renderer)
 	local mapRuler = renderer.mapRuler
@@ -622,12 +629,17 @@ local function GroundDecalToLuaUI(_, filename, x, z, width, height, rotation, r,
 end
 
 local function ClearGroundDecalsToLuaUI(_)
-  Script.LuaUI.ClearGroundDecals()
+  Script.LuaUI.ReceiveClearGroundDecals()
+end
+
+local function StopMapGenRepToLuaUI(_)
+	Script.LuaUI.ReceiveStopMapGenRep()
 end
 
 function gadget:Initialize()
 	gadgetHandler:AddSyncAction('GroundDecal', GroundDecalToLuaUI)
 	gadgetHandler:AddSyncAction('ClearGroundDecals', ClearGroundDecalsToLuaUI)
+	gadgetHandler:AddSyncAction('StopMapGenRep', StopMapGenRepToLuaUI)
 end
 
 end

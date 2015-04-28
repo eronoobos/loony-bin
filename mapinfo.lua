@@ -6,7 +6,7 @@
 local mapinfo = {
 	name        = "Loony Bin",
 	shortname   = "LoonyBin",
-	description = "randomized crater map seasoned to taste",
+	description = "Can YOU escape the randomized crater map WITH YOUR LIFE??! Ignore the static start positions, they are changed after the map is done generating.",
 	author      = "eronoobos",
 	version     = "1",
 	--mutator   = "deployment";
@@ -100,6 +100,7 @@ local mapinfo = {
 	},
 
 	teams = {
+		-- dummy start positions, overwritten completely after map generation
 		[0] = {startPos = {x = 1228, z = 1228}},
 		[1] = {startPos = {x = 4916, z = 4916}},
 		[2] = {startPos = {x = 1228, z = 3684}},
