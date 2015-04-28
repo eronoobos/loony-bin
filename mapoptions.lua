@@ -71,6 +71,14 @@ local options = {
 		def  = "false",
 		section = 'Craters',
 	},
+	{
+		key  = "symmetry",
+		name = "Symmetry",
+		desc = "create a symmetric map for fair gameplay",
+		type = "bool",
+		def  = "true",
+		section = 'Craters',
+	},
 
 	--// Atmosphere
 	{

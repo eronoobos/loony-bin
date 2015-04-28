@@ -202,10 +202,11 @@ local function GenerateMap(randomseed)
 	-- default config values
 	randomseed = randomseed or 1
 	local minDiameter, maxDiameter = 5, 400
+	local showerRamps = false
+	local symmetry = true
 	local metersPerElmo = 8
 	local gravity = (Game.gravity / 130) * 9.8
 	local density = (Game.mapHardness / 100) * 2500
-	local showerRamps = false
 	local startRadius = 380
 
 	-- get map options
@@ -220,6 +221,9 @@ local function GenerateMap(randomseed)
 		end
 		if options.ramps ~= nil then
 			showerRamps = tonumber(options.ramps) == 1
+		end
+		if options.symmetry ~= nil then
+			symmetry = tonumber(options.symmetry) == 1
 		end
 	end
 	spEcho("maxDiameter " .. maxDiameter, "showerRamps " .. tostring(showerRamps))
@@ -238,7 +242,7 @@ local function GenerateMap(randomseed)
 		end
 	end
 	local mirror = false
-	if #allyTeams >= 2 and #allyTeams <= 8 then
+	if symmetry and #allyTeams >= 2 and #allyTeams <= 8 then
 		mirror = true
 	end
 
@@ -253,18 +257,17 @@ local function GenerateMap(randomseed)
 		else
 			startBoxes[allyTeamID] = {0, 0, Game.mapSizeX, Game.mapSizeZ}
 		end
-		spEcho("allyTeamID", allyTeamID, "startbox", startBoxes[allyTeamID][1], startBoxes[allyTeamID][2], startBoxes[allyTeamID][3], startBoxes[allyTeamID][4])
 	end
 	local firstStartBox = startBoxes[allyTeams[1]] or {0, 0, Game.mapSizeX, Game.mapSizeZ}
 	if precalcStartBoxes[-#allyTeams] then
 		firstStartBox = precalcStartBoxes[-#allyTeams][1]
+	end
+	local startsWithinBox
+	if #firstStartBox == 4 then
 		firstStartBox[1] = firstStartBox[1] + fromEdges
 		firstStartBox[2] = firstStartBox[2] + fromEdges
 		firstStartBox[3] = firstStartBox[3] - fromEdges
 		firstStartBox[4] = firstStartBox[4] - fromEdges
-	end
-	local startsWithinBox
-	if #firstStartBox == 4 then
 		local f = firstStartBox
 		local dx = f[3] - f[1]
 		local dz = f[4] - f[2]
@@ -301,7 +304,7 @@ local function GenerateMap(randomseed)
 	end
 	local startMeteorNumber = teamCount
 	if mirror then startMeteorNumber = maxTeamsPerAlly end
-	spEcho(teamCount .. " teamCount", maxTeamsPerAlly .. " maxTeamsPerAlly", startMeteorNumber .. " startMeteorNumber")
+	spEcho("allyTeams " .. #allyTeams, teamCount .. " teamCount", maxTeamsPerAlly .. " maxTeamsPerAlly", startMeteorNumber .. " startMeteorNumber")
 
 	local metalTarget = (teamCount * 6) + (#allyTeams * 3)
 	local geothermalTarget = teamCount
@@ -337,26 +340,28 @@ local function GenerateMap(randomseed)
 		FeedWatchDog()
 		myWorld:Clear()
 		myWorld:MeteorShower(number, minDiameter, maxDiameter)
-		-- add a big crater if the center is empty
-		local lowestDistSq = largestDimensionSq
-		for i, m in pairs(myWorld.meteors) do
-			if m.impact.craterRadius >= myWorld.metalSpotMinRadius then
-				local dx = mAbs(m.sx - centerX) - m.impact.craterRadius
-				local dz = mAbs(m.sz - centerZ) - m.impact.craterRadius
-				local distSq = (dx*dx) + (dz*dz)
-				if distSq < lowestDistSq then
-					lowestDistSq = distSq
+		-- add a big crater if the center is empty and map symmetry is on
+		if mirror then
+			local lowestDistSq = largestDimensionSq
+			for i, m in pairs(myWorld.meteors) do
+				if m.impact.craterRadius >= myWorld.metalSpotMinRadius then
+					local dx = mAbs(m.sx - centerX) - m.impact.craterRadius
+					local dz = mAbs(m.sz - centerZ) - m.impact.craterRadius
+					local distSq = (dx*dx) + (dz*dz)
+					if distSq < lowestDistSq then
+						lowestDistSq = distSq
+					end
 				end
 			end
-		end
-		if lowestDistSq > emptyCenterSq then
-			-- sx, sz, diameterImpactor, velocityImpactKm, angleImpact, densityImpactor, age, metal, geothermal, seedSeed, ramps, mirrorMeteor, noMirror
-			local m = myWorld:AddMeteor(centerX+RandomVariance(5), centerZ+RandomVariance(5), startDiameterImpactor*2, nil, nil, nil, nil, #allyTeams, false, nil, nil, nil, true)
-			if myWorld.showerRamps then m:AddSomeRamps(3) end
-  			m.metalGeothermalRampSet = true
-  			m.dontMirror = true
-  			m:Resize( mSqrt(lowestDistSq) * 0.85 )
-  			spEcho("big central crater", m.impact.craterRadius)
+			if lowestDistSq > emptyCenterSq then
+				-- sx, sz, diameterImpactor, velocityImpactKm, angleImpact, densityImpactor, age, metal, geothermal, seedSeed, ramps, mirrorMeteor, noMirror
+				local m = myWorld:AddMeteor(centerX+RandomVariance(5), centerZ+RandomVariance(5), startDiameterImpactor*2, nil, nil, nil, nil, #allyTeams, false, nil, nil, nil, true)
+				if myWorld.showerRamps then m:AddSomeRamps(3) end
+	  			m.metalGeothermalRampSet = true
+	  			m.dontMirror = true
+	  			m:Resize( mSqrt(lowestDistSq) * 0.85 )
+	  			spEcho("big central crater", m.impact.craterRadius)
+			end
 		end
 		-- add start meteors
 		local nn = 1
@@ -383,7 +388,7 @@ local function GenerateMap(randomseed)
 				end
 				x, z = CirclePos(centerX, centerZ, dist, angle)
 			elseif #firstStartBox == 4 then
-				if startMeteorNumber == 1 or startMeteorNumber > 9 then
+				if not mirror or startMeteorNumber == 1 or startMeteorNumber > 9 then
 					x = mRandom(firstStartBox[1], firstStartBox[3])
 					z = mRandom(firstStartBox[2], firstStartBox[4])
 				else
