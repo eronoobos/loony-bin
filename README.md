@@ -12,3 +12,6 @@
 
 ### Five Allyteams (72-degree rotational symmetry)
 ![screen5](screen5.png)
+
+### No Symmetry
+![screen0](screen0.png)
