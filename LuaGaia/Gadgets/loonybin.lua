@@ -241,10 +241,7 @@ local function GenerateMap(randomseed)
 			allyTeamsByID[allyTeamID] = i
 		end
 	end
-	local mirror = false
-	if symmetry and #allyTeams >= 2 and #allyTeams <= 8 then
-		mirror = true
-	end
+	local mirror = symmetry and #allyTeams >= 2 and #allyTeams <= 8
 
 	-- get startboxes
 	local startBoxes = {}
@@ -328,6 +325,9 @@ local function GenerateMap(randomseed)
 	local number = 12
 	if number * #allyTeams > 48 then
 		number = 10
+	elseif not mirror then
+		number = 20
+		maxDiameter = maxDiameter * 1.33
 	end
 	local try = 1
 	local spots = {}
@@ -455,6 +455,7 @@ local function GenerateMap(randomseed)
 	spEcho("rendering height & metal maps...")
 	FeedWatchDog()
 	myWorld:RenderHeight()
+	FeedWatchDog()
 	myWorld:RenderMetal()
 	-- i have to change the height map here and not through GameFrame so that it happens before pathfinding & team LOS initialization
 	local i = 1
