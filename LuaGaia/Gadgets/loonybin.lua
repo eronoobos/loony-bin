@@ -6,7 +6,7 @@ function gadget:GetInfo()
 		date 	= "April 2015",
 		license = "WTFPL",
 		layer	= 0,
-		version = "1",
+		version = "2",
 		enabled = true,
 	}
 end
@@ -201,7 +201,7 @@ local function GenerateMap(randomseed)
 
 	-- default config values
 	randomseed = randomseed or 1
-	local minDiameter, maxDiameter = 5, 400
+	local minRadius, maxRadius = 15, 1000
 	local showerRamps = false
 	local symmetry = true
 	local metersPerElmo = 8
@@ -213,11 +213,11 @@ local function GenerateMap(randomseed)
 	local options = spGetMapOptions()
 	if options ~= nil then
 		if options.size == "large" then
-			minDiameter, maxDiameter = 25, 700
+			minRadius, maxRadius = 30, 2000
 		elseif options.size == "medium" then
-			minDiameter, maxDiameter = 5, 400
+			minRadius, maxRadius = 15, 1000
 		elseif options.size == "small" then
-			minDiameter, maxDiameter = 1, 200
+			minRadius, maxRadius = 1, 500
 		end
 		if options.ramps ~= nil then
 			showerRamps = tonumber(options.ramps) == 1
@@ -226,7 +226,7 @@ local function GenerateMap(randomseed)
 			symmetry = tonumber(options.symmetry) == 1
 		end
 	end
-	spEcho("maxDiameter " .. maxDiameter, "showerRamps " .. tostring(showerRamps))
+	spEcho("maxRadius " .. maxRadius, "showerRamps " .. tostring(showerRamps))
 	
 	local fromEdges = startRadius * 1.25
 
@@ -313,14 +313,24 @@ local function GenerateMap(randomseed)
 	-- create crater map
 	mRandomSeed(randomseed)
 	myWorld = Loony.World(Game.mapX, Game.mapY, metersPerElmo, gravity, density, "none", metalTarget, geothermalTarget, showerRamps)
+	metersPerElmo = mFloor(myWorld.complexDiameter / 693) -- 693: target complex diamter in elmos
+	spEcho("gravity: " .. gravity .. " meters per second squared", metersPerElmo .. " meters per elmo")
+	myWorld.metersPerElmo = metersPerElmo
 	myWorld.metalSpotMaxPerCrater = metalSpotMaxPerCrater
 	myWorld.generateBlastNoise = false
 	myWorld.underlyingPerlin = true
 	myWorld.generateAgeNoise = false
+	myWorld:Calculate()
 	local testM = myWorld:AddMeteor(1, 1) -- test start crater diameter
 	testM:Resize(startRadius)
-	local startDiameterImpactor = testM.diameterImpactor
+	local startDiameterImpactor = mCeil(testM.diameterImpactor)
+	testM:Resize(maxRadius)
+	local maxDiameter = mCeil(testM.diameterImpactor)
+	testM:Resize(minRadius)
+	local minDiameter = mCeil(testM.diameterImpactor)
 	testM:Delete()
+	spEcho("minRadius " .. minRadius, "minDiameter " .. minDiameter)
+	spEcho("maxRadius " .. maxRadius, "maxDiameter " .. maxDiameter)
 	spEcho("startRadius " .. startRadius, "startDiameterImpactor " .. startDiameterImpactor)
 	local number = 12
 	if number * #allyTeams > 48 then

@@ -55,7 +55,12 @@ function widget:Update()
 		local countRatio = countDown / 100
 		bgAlpha = 0.5 * countRatio
 		txtAlpha = countRatio
+		gl.DeleteList(displayList)
 		displayList = gl.CreateList(DrawReport)
 		countDown = countDown - 1
 	end
+end
+
+function widget:Shutdown()
+	gl.DeleteList(displayList)
 end

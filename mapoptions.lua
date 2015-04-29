@@ -28,6 +28,13 @@
 local options = {
 --// Sections
 	{
+		key  = 'Map',
+		name = 'Map Settings',
+		desc = 'Settings affecting the characteristics of the map as a whole.',
+		type = 'section',
+	},
+
+	{
 		key  = 'Craters',
 		name = 'Crater Settings',
 		desc = 'Control the number, size, and mirroring of craters.',
@@ -49,6 +56,27 @@ local options = {
 	},
 
 --// Options
+	--// Map
+	{
+		key  = "gravity",
+		name = "Gravity",
+		desc = "gravity",
+		type = "number",
+		section = 'Map',
+		def  = 75,
+		min  = 25,
+		max  = 200,
+		step  = 25,
+	},
+	{
+		key  = "symmetry",
+		name = "Symmetry",
+		desc = "create a symmetric map for fair gameplay",
+		type = "bool",
+		def  = true,
+		section = 'Map',
+	},
+
 	--// Craters
 	{
 		key  = "size",
@@ -68,15 +96,7 @@ local options = {
 		name = "Ramps",
 		desc = "ramps to allow vehicle passage in and out of craters",
 		type = "bool",
-		def  = "false",
-		section = 'Craters',
-	},
-	{
-		key  = "symmetry",
-		name = "Symmetry",
-		desc = "create a symmetric map for fair gameplay",
-		type = "bool",
-		def  = "true",
+		def  = false,
 		section = 'Craters',
 	},
 
@@ -90,8 +110,8 @@ local options = {
 		section = 'Atmosphere',
 		items = {
 			{ key = "dawn",  name = "Dawn",  desc = "Dawn" },
-			{ key = "day",   name = "Day",   desc = "Light Side" },
-			{ key = "night", name = "Night", desc = "Dark Side" }
+			{ key = "day",   name = "Day",   desc = "Daytime" },
+			{ key = "night", name = "Night", desc = "Nighttime" }
 		},
 	},
 

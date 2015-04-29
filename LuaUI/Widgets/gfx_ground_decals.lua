@@ -90,12 +90,14 @@ local function ReceiveGroundDecal(filename, x, z, width, height, rotation, r, g,
 	r, g, b, a = r or 1, g or 1, b or 1, a or 1
 	local decal = { x1=x1, z1=z1, x2=x2, z2=z2, rx1=rx1, rz1=rz1, rx2=rx2, rz2=rz2, rotation=rotation, r=r, g=g, b=b, a=a, blendMode=blendMode }
 	tInsert(decals[filename], decal)
+	gl.DeleteList(displayList)
 	displayList = gl.CreateList(DrawDecals)
 	-- spEcho("got ground decal", filename, x, z, width, height)
 end
 
 local function ReceiveClearGroundDecals()
 	decals = {}
+	gl.DeleteList(displayList)
 	displayList = 0
 end
 
@@ -115,6 +117,11 @@ end
 
 function widget:GameFrame(frame)
 	if frame % 300 == 0 then
+		gl.DeleteList(displayList)
 		displayList = gl.CreateList(DrawDecals)
 	end
+end
+
+function widget:Shutdown()
+	gl.DeleteList(displayList)
 end
