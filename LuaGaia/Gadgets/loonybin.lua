@@ -318,8 +318,8 @@ local function GenerateMap(randomseed)
 	myWorld.metersPerElmo = metersPerElmo
 	myWorld.metalSpotMaxPerCrater = metalSpotMaxPerCrater
 	myWorld.generateBlastNoise = false
-	myWorld.underlyingPerlin = true
 	myWorld.generateAgeNoise = false
+	myWorld.underlyingPerlin = true
 	myWorld:Calculate()
 	local testM = myWorld:AddMeteor(1, 1) -- test start crater diameter
 	testM:Resize(startRadius)
@@ -435,7 +435,7 @@ local function GenerateMap(randomseed)
 		end
 		number = number + 1
 		try = try + 1
-		maxDiameter = maxDiameter + 5
+		maxDiameter = maxDiameter + 2
 	end
 	spEcho("found crater map in " .. try-1 .. " tries")
 	if #spots < metalTarget and highestMetal > #spots then

@@ -57,7 +57,7 @@ local mapinfo = {
 	},
 
 	atmosphere = {
-		minWind      = 0.0,
+		minWind      = 5.0,
 		maxWind      = 20.0,
 
 		fogStart     = 0.4,
