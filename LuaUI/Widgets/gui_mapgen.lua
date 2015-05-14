@@ -3,7 +3,7 @@ function widget:GetInfo()
     name      = "Map Generation Report",
     desc      = "Tells the player that the map is generating.",
     author    = "eronoobos",
-    date      = "April 2015",
+    date      = "May 2015",
     license   = "WTFPL",
     layer     = 5,
     enabled   = true  --  loaded by default?
