@@ -84,7 +84,8 @@ local options = {
 		type = "list",
 		def  = "medium",
 		items	= {
-			{ key = 'low', name = "Low (0-10)", desc = "Low wind speeds, 0 to 10" },
+			{ key = 'none', name = "None (0-0)", desc = "No wind, 0 to 0" },
+			{ key = 'low', name = "Low (0-13)", desc = "Low wind speeds, 0 to 13" },
 			{ key = 'medium', name = "Medium (5-20)", desc = "Medium wind speeds, 5 to 20" },
 			{ key = 'high', name = "High (10-30)", desc = "High wind speeds, 10 to 30" },
 		},

@@ -2,10 +2,15 @@
 -- Gravity settings
 --------------------------------------------------------------------------------------------------------
 
-if (Spring.GetMapOptions().wind == "low") then
+if (Spring.GetMapOptions().wind == "none") then
 	return {
 		minWind = 0,
-		maxWind = 10,
+		maxWind = 0,
+	}
+elseif (Spring.GetMapOptions().wind == "low") then
+	return {
+		minWind = 0,
+		maxWind = 13,
 	}
 elseif (Spring.GetMapOptions().wind == "medium") then
 	return {
