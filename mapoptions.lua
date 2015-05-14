@@ -60,18 +60,18 @@ local options = {
 	{
 		key  = "gravity",
 		name = "Gravity",
-		desc = "gravity",
+		desc = "Planet gravity. The default of 75 is lowish. 125 is fairly standard. 250 is very high. 25 is ridiculously low.",
 		type = "number",
 		section = 'Map',
 		def  = 75,
 		min  = 25,
-		max  = 200,
+		max  = 250,
 		step  = 25,
 	},
 	{
 		key  = "symmetry",
 		name = "Symmetry",
-		desc = "create a symmetric map for fair gameplay",
+		desc = "Create a symmetric map for fair gameplay.",
 		type = "bool",
 		section = 'Map',
 		def  = true,
@@ -79,7 +79,7 @@ local options = {
 	{
 		key  = "wind",
 		name = "Wind",
-		desc = "wind speeds",
+		desc = "Wind speeds.",
 		section = 'Map',
 		type = "list",
 		def  = "medium",
@@ -95,7 +95,7 @@ local options = {
 	{
 		key  = "size",
 		name = "Size",
-		desc = "Size of craters",
+		desc = "Size of craters.",
 		type = "list",
 		def  = "medium",
 		section = 'Craters',
@@ -108,7 +108,7 @@ local options = {
 	{
 		key  = "ramps",
 		name = "Ramps",
-		desc = "ramps to allow vehicle passage in and out of craters",
+		desc = "Ramps to allow vehicle passage in and out of craters.",
 		type = "bool",
 		def  = false,
 		section = 'Craters',
@@ -118,7 +118,7 @@ local options = {
 	{
 		key  = "timeofday",
 		name = "Time of day",
-		desc = "Night or day?",
+		desc = "What kind of light? Day, night, or dawn?",
 		type = "list",
 		def  = "day",
 		section = 'Atmosphere',
@@ -133,7 +133,7 @@ local options = {
 	{
 		key  = 'metal',
 		name = 'Metal Production',
-		desc = 'Metal production levels - How much each metal spot produces',
+		desc = 'Metal production levels: how much each metal spot produces.',
 		type = 'list',
 		section = 'Economy',
 		def  = 'normal',
