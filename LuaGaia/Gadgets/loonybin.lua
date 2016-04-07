@@ -517,7 +517,7 @@ local function SendGroundDecals()
 	SendToUnsynced('ClearGroundDecals')
 	-- add metal spot decals
 	for i, spot in pairs(metalSpots) do
-		SendToUnsynced('GroundDecal', "maps/mex.png", spot.x, spot.z, myWorld.metalSpotRadius*6, nil, nil, 0.5, 0, 0, 0.25)
+		SendToUnsynced('GroundDecal', "maps/mex.png", spot.x, spot.z, myWorld.metalSpotRadius*5, nil, nil, 1.0, 0.0, 0.0, 0.35)
 	end
 	-- add geothermal decals
 	for i, m in pairs(myWorld.meteors) do
