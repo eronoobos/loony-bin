@@ -8,7 +8,7 @@ local mapinfo = {
 	shortname   = "LoonyBin",
 	description = "Can YOU escape the randomized crater map WITH YOUR LIFE??! Ignore the static start positions, they are changed after the map is done generating.",
 	author      = "eronoobos",
-	version     = "2",
+	version     = "3",
 	--mutator   = "deployment";
 	--mapfile   = "", --// location of smf/sm3 file (optional)
 	modtype     = 3, --// 1=primary, 0=hidden, 3=map
