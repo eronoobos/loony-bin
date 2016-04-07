@@ -88,15 +88,15 @@ local mapinfo = {
 		sunDir        = {1.0, 0.4, 0.0, 1e9},
 
 		--// unit & ground lighting
-		groundAmbientColor  = {0.5, 0.5, 0.5},
+		groundAmbientColor  = {0.25, 0.25, 0.25},
 		groundDiffuseColor  = {1.0, 1.0, 1.0},
-		groundSpecularColor = {0.5, 0.5, 0.5},
+		groundSpecularColor = {0.1, 0.1, 0.1},
 		groundShadowDensity = 1.0,
-		unitAmbientColor    = {0.55, 0.5, 0.45},
+		unitAmbientColor    = {0.35, 0.3, 0.25},
 		unitDiffuseColor    = {0.975, 0.975, 1.05},
-		unitSpecularColor   = {0.45, 0.55, 0.5},
-		unitShadowDensity   = 0.5,
-		specularExponent    = 100.0,
+		unitSpecularColor   = {0.25, 0.35, 0.3},
+		unitShadowDensity   = 1.0,
+		specularExponent    = 10.0,
 	},
 
 	teams = {

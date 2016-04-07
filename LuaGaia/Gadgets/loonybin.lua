@@ -556,17 +556,26 @@ function gadget:GameID(gameID)
 		rseed = rseed + part
 	end
 	spEcho("got randomseed from gameID: " .. rseed)
+	if Game.version == '101.0' or tonumber(Game.version) >= 101 then
+		Spring.Echo("engine version is 101.0 or higher, using Spring.SetGlobalLos")
+		for _, allyTeamID in pairs(Spring.GetAllyTeamList()) do
+			Spring.SetGlobalLos(allyTeamID, true)
+		end
+	end
 	GenerateMap(rseed)
 end
 
 function gadget:GameStart()
-	crazyeyes = {}
-	for i, teamID in pairs(Spring.GetTeamList()) do
-		if teamID ~= Spring.GetGaiaTeamID() then
-			for x = 0, gMapSizeX, centerX do
-				for z = 0, gMapSizeZ, centerZ do
-					local unitID = Spring.CreateUnit("crazyeye", x, 1000, z, 0, teamID)
-					tInsert(crazyeyes, unitID)
+	if Game.version ~= '101.0' and tonumber(Game.version) < 101 then
+		Spring.Echo("engine version is lower than 101.0 spawning crazyeye units with 9999 losradius")
+		crazyeyes = {}
+		for i, teamID in pairs(Spring.GetTeamList()) do
+			if teamID ~= Spring.GetGaiaTeamID() then
+				for x = 0, gMapSizeX, centerX do
+					for z = 0, gMapSizeZ, centerZ do
+						local unitID = Spring.CreateUnit("crazyeye", x, 1000, z, 0, teamID)
+						tInsert(crazyeyes, unitID)
+					end
 				end
 			end
 		end
@@ -576,8 +585,14 @@ end
 function gadget:GameFrame(frame)
 	-- if they're destroyed before game start, the team dies
 	if frame == 1 then
-		for i, unitID in pairs(crazyeyes) do
-			Spring.DestroyUnit(unitID, false, true)
+		if Game.version == '101.0' or tonumber(Game.version) >= 101 then
+			for _, allyTeamID in pairs(Spring.GetAllyTeamList()) do
+				Spring.SetGlobalLos(allyTeamID, false)
+			end
+		else
+			for i, unitID in pairs(crazyeyes) do
+				Spring.DestroyUnit(unitID, false, true)
+			end
 		end
 		SendToUnsynced('StopMapGenRep')
 	end
@@ -615,6 +630,10 @@ function Loony.CompleteRenderer(renderer)
 				FeedWatchDog()
 				for y, height in pairs(yy) do
 					local sx, sz = mapRuler:XYtoXZ(x, y)
+					-- if sx < 8 then Spring.Echo(sx, x) end
+					-- if sx > gMapSizeX-8 then Spring.Echo(sx, x) end
+					-- if sz < 8 then Spring.Echo(sz, y) end
+					-- if sz > gMapSizeZ-8 then Spring.Echo(sz, y) end
 					spSetHeightMap(sx, sz, baselevel+height)
 				end
 			end
