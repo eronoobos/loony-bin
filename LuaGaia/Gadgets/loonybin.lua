@@ -184,7 +184,6 @@ local rockFeatureNames = {
 	"brock_1",
 	"agorm_rock4",
 	"agorm_rock5",
-	"pdrock4",
 }
 
 local blastRayDecals = {
@@ -478,7 +477,7 @@ local function GenerateMap(randomseed)
 
 	-- add reclaimable rocks to empty craters
 	local rockCount = 0
-	local maxRocks = mFloor(#myWorld.meteors * 0.2)
+	local maxRocks = mFloor(#myWorld.meteors * 0.35)
 	local rfi = mRandom(1, #rockFeatureNames)
 	for i = #myWorld.meteors, 1, -1 do
 		local m = myWorld.meteors[i]
