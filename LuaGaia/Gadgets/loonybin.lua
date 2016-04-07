@@ -549,13 +549,17 @@ end
 function gadget:GameID(gameID)
 	thisGameID = gameID
 	local rseed = 0
-	local unpacked = VFS.UnpackU8(gameID, 1, string.len(gameID))
+	local unpacked = VFS.UnpackU8(thisGameID, 1, string.len(thisGameID))
 	for i, part in ipairs(unpacked) do
 		-- local mult = 256 ^ (#unpacked-i)
 		-- rseed = rseed + (part*mult)
 		rseed = rseed + part
 	end
 	spEcho("got randomseed from gameID: " .. rseed)
+	GenerateMap(rseed)
+end
+
+function gadget:GameStart()
 	crazyeyes = {}
 	for i, teamID in pairs(Spring.GetTeamList()) do
 		if teamID ~= Spring.GetGaiaTeamID() then
@@ -567,18 +571,16 @@ function gadget:GameID(gameID)
 			end
 		end
 	end
-	GenerateMap(rseed)
-	SendToUnsynced('StopMapGenRep')
-end
-
-function gadget:GameStart()
-	-- if they're destroyed before game start, the team dies
-	for i, unitID in pairs(crazyeyes) do
-		Spring.DestroyUnit(unitID, false, true)
-	end
 end
 
 function gadget:GameFrame(frame)
+	-- if they're destroyed before game start, the team dies
+	if frame == 1 then
+		for i, unitID in pairs(crazyeyes) do
+			Spring.DestroyUnit(unitID, false, true)
+		end
+		SendToUnsynced('StopMapGenRep')
+	end
 	-- have to send them late, otherwise the height map hasn't yet updated
 	if frame == 60 then
 		SendGroundDecals()
